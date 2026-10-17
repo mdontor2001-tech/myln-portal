@@ -1,0 +1,1818 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MYLN Portal | Login</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --primary-light: #ccfbf1;
+  --background: #f1f5f9;
+  --surface: #ffffff;
+  --text: #172033;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --danger: #b91c1c;
+  --radius: 14px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: var(--background);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.card {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(18px, 3vw, 32px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+}
+
+.logo {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--primary);
+  color: white;
+  font-size: 25px;
+  font-weight: bold;
+}
+
+h1 {
+  color: var(--primary);
+  line-height: 1.25;
+}
+
+h1,
+.subtitle {
+  text-align: center;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+section {
+  margin-top: 24px !important;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
+}
+
+section h2 {
+  margin-top: 0;
+  padding-bottom: 10px;
+  color: var(--primary-dark);
+  font-size: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+section h3 {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+label {
+  display: block;
+  margin: 14px 0 7px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--primary-light);
+  border-color: var(--primary);
+}
+
+button {
+  width: auto;
+  max-width: 100%;
+  padding: 11px 16px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: var(--primary-dark);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+form {
+  max-width: 100%;
+}
+
+ul {
+  padding-left: 22px;
+}
+
+li {
+  margin-bottom: 10px;
+}
+
+table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  background: white;
+  font-size: 14px;
+}
+
+th {
+  background: #f0fdfa;
+  color: var(--primary-dark);
+}
+
+th,
+td {
+  padding: 10px !important;
+  border: 1px solid var(--border) !important;
+  text-align: left;
+  white-space: nowrap;
+}
+
+#message,
+#dashboardError {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+#dashboardError {
+  color: var(--danger);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  section {
+    padding: 14px;
+  }
+
+  section h2 {
+    font-size: 18px;
+  }
+
+  button {
+    max-width: 100%;
+  }
+}
+
+/* MYLN Dashboard Header */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.header-brand .logo {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.header-brand h1 {
+  margin: 0;
+  text-align: left;
+  font-size: 24px;
+}
+
+.header-brand .subtitle {
+  margin: 4px 0 0;
+  text-align: left;
+}
+
+.dashboard-header > button {
+  margin-top: 0;
+}
+
+/* Sidebar and main content */
+#dashboardLayout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+#dashboardSidebar {
+  padding: 18px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+#dashboardSidebar h3 {
+  margin: 0 0 14px;
+  color: var(--primary-dark);
+}
+
+#dashboardNav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#dashboardNav button {
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+}
+
+#dashboardNav button:hover,
+#dashboardNav button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+#dashboardContent {
+  min-width: 0;
+}
+
+#dashboardContent > section:first-child {
+  margin-top: 0 !important;
+}
+
+/* Student and mentor layout */
+#dashboardLayout.no-sidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Mobile responsive */
+@media (max-width: 760px) {
+  #dashboardLayout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  #dashboardNav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #dashboardSidebar {
+    padding: 14px;
+  }
+
+  .header-brand h1 {
+    font-size: 20px;
+  }
+}
+
+/* Professional MYLN Dashboard Header */
+.dashboard-header {
+  position: relative;
+  padding: 18px 20px;
+  margin: -10px -10px 24px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f0fdfa, #ffffff 70%);
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.06);
+}
+
+.header-brand {
+  gap: 16px;
+}
+
+.header-brand .logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  box-shadow: 0 5px 12px rgba(15, 118, 110, 0.18);
+}
+
+.header-brand h1 {
+  color: #115e59;
+  font-size: clamp(20px, 2.5vw, 27px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.header-brand .subtitle {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.dashboard-header > button {
+  padding: 11px 20px;
+  border-radius: 10px;
+  background: #b91c1c;
+  box-shadow: 0 3px 8px rgba(185, 28, 28, 0.12);
+}
+
+.dashboard-header > button:hover {
+  background: #991b1b;
+}
+
+@media (max-width: 600px) {
+  .dashboard-header {
+    margin: 0 0 18px;
+    padding: 15px;
+  }
+
+  .header-brand {
+    gap: 11px;
+  }
+
+  .header-brand .logo {
+    width: 46px;
+    height: 46px;
+  }
+
+  .dashboard-header > button {
+    width: 100%;
+  }
+}
+
+/* Professional Sidebar */
+#dashboardSidebar {
+  position: sticky;
+  top: 18px;
+  padding: 20px 14px;
+  background: linear-gradient(180deg, #f0fdfa, #ffffff);
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.04);
+}
+
+#dashboardSidebar h3 {
+  padding: 0 10px 14px;
+  margin-bottom: 12px;
+  color: #115e59;
+  font-size: 15px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #dbeafe;
+}
+
+#dashboardNav {
+  gap: 7px;
+}
+
+#dashboardNav button {
+  display: flex;
+  align-items: center;
+  padding: 12px 13px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 13px;
+  transition: background 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease, transform 0.2s ease;
+}
+
+#dashboardNav button:hover {
+  background: #ccfbf1;
+  color: #115e59;
+  border-color: #99f6e4;
+  transform: translateX(2px);
+}
+
+#dashboardNav button.active {
+  background: #0f766e;
+  color: #ffffff;
+  border-color: #0f766e;
+  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.15);
+}
+
+@media (max-width: 760px) {
+  #dashboardSidebar {
+    position: static;
+    padding: 14px;
+  }
+
+  #dashboardNav button {
+    padding: 10px;
+    font-size: 12px;
+    transform: none;
+  }
+}
+
+/* Student Profile Cards */
+.student-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.student-profile-item {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f0fdfa, #ffffff);
+}
+
+.student-profile-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.student-profile-value {
+  color: var(--primary-dark);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 500px) {
+  .student-profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Student Attendance Table */
+.attendance-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: white;
+}
+
+.attendance-table-wrapper table {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-collapse: collapse;
+}
+
+.student-attendance-table th,
+.student-attendance-table td {
+  padding: 12px !important;
+  border-bottom: 1px solid var(--border) !important;
+  white-space: normal;
+  vertical-align: top;
+}
+
+.student-attendance-table th {
+  background: #f0fdfa;
+}
+
+.student-attendance-table .attendance-status {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.student-attendance-table .attendance-status.present {
+  color: #15803d;
+}
+
+.student-attendance-table .attendance-status.absent {
+  color: #b91c1c;
+}
+
+.student-attendance-table .attendance-status.late {
+  color: #b45309;
+}
+
+@media (max-width: 500px) {
+  .student-attendance-table th,
+  .student-attendance-table td {
+    padding: 9px !important;
+    font-size: 13px;
+  }
+}
+
+/* Mentor Dashboard - Assigned Students */
+.mentor-students-section {
+  background: linear-gradient(135deg, #f0fdfa, #ffffff 65%);
+}
+
+.mentor-students-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.mentor-students-section ul li {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 500px) {
+  .mentor-students-section ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Mentor Attendance Form */
+.mentor-attendance-form {
+  max-width: 560px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0fdfa, #ffffff);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.mentor-attendance-form select,
+.mentor-attendance-form input,
+.mentor-attendance-form textarea {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+.mentor-attendance-form button {
+  width: 100%;
+  min-height: 44px;
+}
+
+.mentor-attendance-form button:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 500px) {
+  .mentor-attendance-form {
+    padding: 14px;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <div class="logo">M</div>
+    <h1>MYLN Portal</h1>
+    <p class="subtitle">Muslim Youth Learning Network</p>
+
+    <form id="loginForm">
+      <label for="email">Email Address</label>
+      <input id="email" type="email" required
+             autocomplete="username" placeholder="Enter your email">
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required
+             autocomplete="current-password" placeholder="Enter your password">
+
+      <button id="loginButton" type="submit">Login</button>
+    </form>
+
+    <div id="message" role="status" aria-live="polite"></div>
+    <p class="hint">Authorized MYLN users only.</p>
+  </main>
+
+  
+<script>
+  const SUPABASE_URL = "https://llerltrsxwppcuwxwmnc.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JllG593jyrLEgxAcRptyYw_4xgIhqPY";
+
+  const client = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  const form = document.getElementById("loginForm");
+  const button = document.getElementById("loginButton");
+  const message = document.getElementById("message");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    message.textContent = "";
+    button.disabled = true;
+    button.textContent = "Signing in...";
+
+    try {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const { data, error } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      const { data: profile, error: profileError } = await client
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      if (!profile ||
+          !["admin", "mentor", "student"].includes(profile.role)) {
+        await client.auth.signOut();
+        throw new Error("No valid MYLN profile or role was found.");
+      }
+
+      const card = document.querySelector(".card");
+
+
+card.innerHTML = `
+  <div class="dashboard-header">
+    <div class="header-brand">
+      <div class="logo">M</div>
+      <div>
+        <h1 id="welcomeTitle">MYLN Dashboard</h1>
+        <p id="userName" class="subtitle"></p>
+      </div>
+    </div>
+    <button id="logoutButton" type="button">Logout</button>
+  </div>
+
+  <div id="dashboardLayout">
+    <aside id="dashboardSidebar">
+      <h3>Navigation</h3>
+      <nav id="dashboardNav">
+        <button type="button" data-section="overview">Overview</button>
+        <button type="button" data-section="student-management">Students</button>
+        <button type="button" data-section="mentor-management">Mentors</button>
+        <button type="button" data-section="attendance-management">Attendance</button>
+        <button type="button" data-section="attendance-records">Attendance Records</button>
+        <button type="button" data-section="attendance-summary">Attendance Summary</button>
+        <button type="button" data-section="overall-attendance-statistics">Statistics</button>
+      </nav>
+    </aside>
+
+    <main id="dashboardContent">Loading dashboard...</main>
+  </div>
+
+  <p id="dashboardError" role="alert"></p>
+`;
+
+      document.getElementById("userName").textContent =
+        profile.full_name || email;
+
+      const content = document.getElementById("dashboardContent");
+      
+const dashboardLayout = document.getElementById("dashboardLayout");
+const dashboardSidebar = document.getElementById("dashboardSidebar");
+const dashboardNav = document.getElementById("dashboardNav");
+
+if (profile.role !== "admin") {
+  dashboardLayout.classList.add("no-sidebar");
+  dashboardSidebar.hidden = true;
+}
+
+dashboardNav.addEventListener("click", function (event) {
+  const button = event.target.closest("button[data-section]");
+
+  if (!button) return;
+
+  const target = document.getElementById(button.dataset.section);
+
+  if (!target) {
+    console.warn("Dashboard section not found:", button.dataset.section);
+    return;
+  }
+
+  dashboardNav.querySelectorAll("button").forEach(function (item) {
+    item.classList.toggle("active", item === button);
+  });
+
+  target.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+});
+
+function updateActiveNavigation() {
+  const sections = dashboardNav.querySelectorAll("button[data-section]");
+
+  let activeSection = null;
+  let smallestDistance = Infinity;
+
+  sections.forEach(function (button) {
+    const section = document.getElementById(button.dataset.section);
+
+    if (!section) return;
+
+    const distance = Math.abs(section.getBoundingClientRect().top - 120);
+
+    if (section.getBoundingClientRect().top <= 180 && distance < smallestDistance) {
+      smallestDistance = distance;
+      activeSection = button;
+    }
+  });
+
+  if (!activeSection) return;
+
+  sections.forEach(function (button) {
+    button.classList.toggle("active", button === activeSection);
+  });
+}
+
+window.addEventListener("scroll", updateActiveNavigation, { passive: true });
+
+      const dashboardError = document.getElementById("dashboardError");
+
+      function addText(tag, text, parent = content) {
+        const element = document.createElement(tag);
+        element.textContent = text;
+        parent.appendChild(element);
+        return element;
+      }
+
+
+function addSection(title) {
+  const section = document.createElement("section");
+
+  const sectionIds = {
+    "Overview": "overview",
+    "Student Management": "student-management",
+    "Mentor Management": "mentor-management",
+    "Attendance Management": "attendance-management",
+    "Attendance Records": "attendance-records",
+    "Attendance Summary": "attendance-summary",
+    "Overall Attendance Statistics": "overall-attendance-statistics"
+  };
+
+  section.id = sectionIds[title] || title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  section.style.marginTop = "24px";
+  section.style.textAlign = "left";
+
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  section.appendChild(heading);
+
+  content.appendChild(section);
+  return section;
+}
+
+      if (profile.role === "student") {
+        const { data: student, error: studentError } = await client
+          .from("students")
+          .select("id, full_name, class_level, institution, status")
+          .eq("profile_id", data.user.id)
+          .maybeSingle();
+
+        if (studentError) throw studentError;
+
+        if (!student) {
+          throw new Error(
+            "Student record not found. Please contact the MYLN admin."
+          );
+        }
+
+        content.innerHTML = "";
+
+        
+const section = addSection("My Profile");
+section.classList.add("student-profile-section");
+
+const profileDetails = [
+  ["Full Name", student.full_name || "Not set"],
+  ["Class", student.class_level || "Not set"],
+  ["Institution", student.institution || "Not set"],
+  ["Status", student.status || "Not set"]
+];
+
+const profileGrid = document.createElement("div");
+profileGrid.className = "student-profile-grid";
+
+profileDetails.forEach(function ([label, value]) {
+  const item = document.createElement("div");
+  item.className = "student-profile-item";
+
+  const title = document.createElement("span");
+  title.className = "student-profile-label";
+  title.textContent = label;
+
+  const detail = document.createElement("strong");
+  detail.className = "student-profile-value";
+  detail.textContent = value;
+
+  item.append(title, detail);
+  profileGrid.appendChild(item);
+});
+
+section.appendChild(profileGrid);
+
+        const attendanceSection = addSection("My Recent Attendance");
+        addText("p", "Loading attendance...", attendanceSection);
+
+        const { data: attendance, error: attendanceError } = await client
+          .from("attendance")
+          .select("attendance_date, status, notes")
+          .eq("student_id", student.id)
+          .order("attendance_date", { ascending: false })
+          .limit(10);
+
+        if (attendanceError) throw attendanceError;
+
+        
+attendanceSection.innerHTML = "";
+addText("h2", "My Recent Attendance", attendanceSection);
+
+if (!attendance || attendance.length === 0) {
+  addText("p", "No attendance records yet.", attendanceSection);
+} else {
+  const tableWrapper = document.createElement("div");
+  tableWrapper.className = "attendance-table-wrapper";
+
+  const table = document.createElement("table");
+  table.className = "student-attendance-table";
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  ["Date", "Status", "Notes"].forEach(function (heading) {
+    const th = document.createElement("th");
+    th.textContent = heading;
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+
+  attendance.forEach(function (record) {
+    const row = document.createElement("tr");
+
+    const dateCell = document.createElement("td");
+    dateCell.textContent = record.attendance_date || "—";
+
+    const statusCell = document.createElement("td");
+    statusCell.textContent = record.status || "—";
+    statusCell.className = "attendance-status " +
+      String(record.status || "").toLowerCase();
+
+    const notesCell = document.createElement("td");
+    notesCell.textContent = record.notes || "—";
+
+    row.append(dateCell, statusCell, notesCell);
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+  tableWrapper.appendChild(table);
+  attendanceSection.appendChild(tableWrapper);
+}
+
+      } else if (profile.role === "admin") {
+        console.log("ADMIN DASHBOARD STARTED");
+        content.innerHTML = "";
+        addText("p", "Welcome to the MYLN Admin Dashboard.");
+        addText("p", "Dashboard summary:");
+
+        const summary = addSection("Overview");
+        addText("p", "Loading records...", summary);
+
+        const results = await Promise.all([
+          client.from("students").select("id", { count: "exact", head: true }),
+          client.from("mentors").select("id", { count: "exact", head: true }),
+          client.from("profiles").select("id", { count: "exact", head: true }),
+          client.from("attendance").select("id", { count: "exact", head: true })
+        ]);
+
+        const failed = results.find((result) => result.error);
+        if (failed) throw failed.error;
+
+        summary.innerHTML = "";
+        addText("h2", "Overview", summary);
+        addText("p", "Total Students: " + results[0].count, summary);
+        addText("p", "Total Mentors: " + results[1].count, summary);
+        addText("p", "Total Profiles: " + results[2].count, summary);
+        addText("p", "Attendance Records: " + results[3].count, summary);
+
+        const studentsSection = addSection("Student Management");
+        addText("p", "Loading students...", studentsSection);
+
+        const { data: students, error: studentsError } = await client
+          .from("students")
+          .select("full_name, class_level, institution, status")
+          .order("full_name", { ascending: true });
+
+        if (studentsError) throw studentsError;
+
+        studentsSection.innerHTML = "";
+        addText("h2", "Student Management", studentsSection);
+
+        if (!students || students.length === 0) {
+          addText("p", "No students found.", studentsSection);
+        } else {
+          const list = document.createElement("ul");
+
+          students.forEach((student) => {
+            const item = document.createElement("li");
+            item.style.marginBottom = "12px";
+            item.textContent =
+              student.full_name + " | " +
+              student.class_level + " | " +
+              student.institution + " | " +
+              student.status;
+
+            list.appendChild(item);
+          });
+
+          studentsSection.appendChild(list);
+        }
+
+        // Mentor Management
+        const mentorsSection = addSection("Mentor Management");
+        addText("p", "Loading mentors...", mentorsSection);
+
+        const { data: mentors, error: mentorsError } = await client
+          .from("mentors")
+          .select("id, full_name, phone, skills, status")
+          .order("full_name", { ascending: true });
+
+        if (mentorsError) throw mentorsError;
+
+        mentorsSection.innerHTML = "";
+        addText("h2", "Mentor Management", mentorsSection);
+
+        if (!mentors || mentors.length === 0) {
+          addText("p", "No mentors found.", mentorsSection);
+        } else {
+          const list = document.createElement("ul");
+
+          mentors.forEach((mentor) => {
+            const item = document.createElement("li");
+            item.style.marginBottom = "12px";
+            item.textContent =
+              mentor.full_name + " | " +
+              mentor.skills + " | " +
+              mentor.status;
+
+            list.appendChild(item);
+          });
+
+          mentorsSection.appendChild(list);
+        }
+        // Assign Student to Mentor
+        addText("h3", "Assign Student to Mentor", mentorsSection);
+
+        const assignmentForm = document.createElement("form");
+        assignmentForm.style.display = "grid";
+        assignmentForm.style.gap = "10px";
+        assignmentForm.style.maxWidth = "400px";
+
+        const mentorSelect = document.createElement("select");
+        mentorSelect.required = true;
+
+        const mentorPlaceholder = document.createElement("option");
+        mentorPlaceholder.value = "";
+        mentorPlaceholder.textContent = "Select Mentor";
+        mentorSelect.appendChild(mentorPlaceholder);
+
+        (mentors || []).forEach((mentor) => {
+          const option = document.createElement("option");
+          option.value = mentor.id;
+          option.textContent = mentor.full_name;
+          mentorSelect.appendChild(option);
+        });
+
+        const assignmentStudentSelect = document.createElement("select");
+        assignmentStudentSelect.required = true;
+
+        const studentPlaceholder = document.createElement("option");
+        studentPlaceholder.value = "";
+        studentPlaceholder.textContent = "Select Student";
+        assignmentStudentSelect.appendChild(studentPlaceholder);
+
+        const { data: assignmentStudents, error: assignmentStudentsError } =
+          await client
+            .from("students")
+            .select("id, full_name, class_level")
+            .order("full_name", { ascending: true });
+
+        if (assignmentStudentsError) throw assignmentStudentsError;
+
+        (assignmentStudents || []).forEach((student) => {
+          const option = document.createElement("option");
+          option.value = student.id;
+          option.textContent =
+            student.full_name + " - " + student.class_level;
+          assignmentStudentSelect.appendChild(option);
+        });
+
+        const assignButton = document.createElement("button");
+        assignButton.type = "submit";
+        assignButton.textContent = "Assign Student";
+
+        const assignmentMessage = document.createElement("p");
+
+        assignmentForm.append(
+          mentorSelect,
+          assignmentStudentSelect,
+          assignButton,
+          assignmentMessage
+        );
+
+        assignmentForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          assignButton.disabled = true;
+          assignmentMessage.textContent = "Assigning...";
+
+          try {
+            const { error } = await client
+              .from("mentor_students")
+              .insert({
+                mentor_id: mentorSelect.value,
+                student_id: assignmentStudentSelect.value,
+                assigned_by: data.user.id
+              });
+
+            if (error) throw error;
+
+            assignmentMessage.textContent =
+              "Student assigned successfully!";
+            assignmentForm.reset();
+          } catch (error) {
+            assignmentMessage.textContent =
+              error.code === "23505"
+                ? "This student is already assigned to this mentor."
+                : error.message;
+          } finally {
+            assignButton.disabled = false;
+          }
+        });
+
+        mentorsSection.appendChild(assignmentForm);
+
+        // Attendance Management
+        const attendanceSection = addSection("Attendance Management");
+        attendanceSection.innerHTML = "";
+
+        addText("h2", "Mark Attendance", attendanceSection);
+
+        const attendanceForm = document.createElement("form");
+        attendanceForm.style.display = "grid";
+        attendanceForm.style.gap = "10px";
+
+        
+const attendanceStudentSelect = document.createElement("select");
+attendanceStudentSelect.required = true;
+
+const defaultStudentOption = document.createElement("option");
+defaultStudentOption.value = "";
+defaultStudentOption.textContent = "Select a student";
+attendanceStudentSelect.appendChild(defaultStudentOption);
+
+
+        const { data: attendanceStudents, error: attendanceStudentsError } =
+          await client
+            .from("students")
+            .select("id, full_name, class_level")
+            .order("full_name");
+
+        if (attendanceStudentsError) throw attendanceStudentsError;
+
+        attendanceStudents.forEach((student) => {
+          const option = document.createElement("option");
+          option.value = student.id;
+          option.textContent =
+            student.full_name + " (" + student.class_level + ")";
+          attendanceStudentSelect.appendChild(option);
+        });
+
+        const dateInput = document.createElement("input");
+        dateInput.type = "date";
+        dateInput.required = true;
+
+        const today = new Date();
+        dateInput.value = [
+          today.getFullYear(),
+          String(today.getMonth() + 1).padStart(2, "0"),
+          String(today.getDate()).padStart(2, "0")
+        ].join("-");
+
+        const statusSelect = document.createElement("select");
+        statusSelect.required = true;
+
+        [
+          { value: "present", label: "Present" },
+          { value: "absent", label: "Absent" },
+          { value: "late", label: "Late" }
+        ].forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.value;
+          option.textContent = item.label;
+          statusSelect.appendChild(option);
+        });
+
+        const notesInput = document.createElement("input");
+        notesInput.type = "text";
+        notesInput.placeholder = "Notes (optional)";
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "submit";
+        saveButton.textContent = "Save Attendance";
+
+        const attendanceMessage = document.createElement("p");
+        attendanceMessage.setAttribute("role", "status");
+
+        attendanceForm.append(
+          attendanceStudentSelect,
+          dateInput,
+          statusSelect,
+          notesInput,
+          saveButton,
+          attendanceMessage
+        );
+
+        attendanceSection.appendChild(attendanceForm);
+
+        attendanceForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          saveButton.disabled = true;
+          attendanceMessage.textContent = "Saving...";
+
+          try {
+            const { error: saveError } = await client
+              .from("attendance")
+              .insert({
+                student_id: attendanceStudentSelect.value,
+                attendance_date: dateInput.value,
+                status: statusSelect.value,
+                notes: notesInput.value.trim() || null,
+                marked_by: data.user.id
+              });
+
+            if (saveError) throw saveError;
+
+            attendanceMessage.textContent =
+              "Attendance saved successfully!";
+
+            notesInput.value = "";
+          } catch (error) {
+            
+attendanceMessage.textContent =
+  error.code === "23505"
+    ? "Attendance already marked for this student today."
+    : "Error: " + error.message;
+
+          } finally {
+            saveButton.disabled = false;
+          }
+        });
+
+        // Attendance Records
+        const recordsSection = addSection("Attendance Records");
+        const recordsMessage = addText(
+          "p",
+          "Loading attendance records...",
+          recordsSection
+        );
+// Attendance Date Filter
+const filterContainer = document.createElement("div");
+
+const filterLabel = document.createElement("label");
+filterLabel.textContent = "Filter by date: ";
+
+const dateFilter = document.createElement("input");
+dateFilter.type = "date";
+dateFilter.id = "attendanceDateFilter";
+
+filterLabel.appendChild(dateFilter);
+filterContainer.appendChild(filterLabel);
+
+const clearFilterButton = document.createElement("button");
+clearFilterButton.textContent = "Show All";
+clearFilterButton.type = "button";
+
+filterContainer.appendChild(clearFilterButton);
+recordsSection.appendChild(filterContainer);
+
+        async function loadAttendanceRecords() {
+          recordsMessage.textContent = "Loading attendance records...";
+
+          const { data: records, error: recordsError } = await client
+            .from("attendance")
+            .select(`
+              id,
+              attendance_date,
+              status,
+              notes,
+              students(full_name, class_level)
+            `)
+            .order("attendance_date", { ascending: false });
+
+          if (recordsError) {
+            recordsMessage.textContent = "Error: " + recordsError.message;
+            return;
+          }
+
+          recordsSection.innerHTML = "";
+          addText("h2", "Attendance Records", recordsSection);
+          recordsSection.appendChild(filterContainer);
+          if (!records || records.length === 0) {
+            addText("p", "No attendance records found.", recordsSection);
+            return;
+          }
+
+          const table = document.createElement("table");
+          table.style.width = "100%";
+          table.style.borderCollapse = "collapse";
+
+          const headers = [
+            "Student",
+            "Class",
+            "Date",
+            "Status",
+            "Notes"
+          ];
+
+          const headerRow = document.createElement("tr");
+
+          headers.forEach((header) => {
+            const th = document.createElement("th");
+            th.textContent = header;
+            th.style.border = "1px solid #ccc";
+            th.style.padding = "8px";
+            th.style.textAlign = "left";
+            headerRow.appendChild(th);
+          });
+
+          table.appendChild(headerRow);
+const selectedDate = dateFilter.value;
+
+const filteredRecords = selectedDate
+  ? records.filter((record) => record.attendance_date === selectedDate)
+  : records;
+          filteredRecords.forEach((record) => {
+            const row = document.createElement("tr");
+            const student = record.students;
+
+            [
+              student?.full_name || "Unknown",
+              student?.class_level || "—",
+              record.attendance_date,
+              record.status,
+              record.notes || "—"
+            ].forEach((value) => {
+              const cell = document.createElement("td");
+              cell.textContent = value;
+              cell.style.border = "1px solid #ccc";
+              cell.style.padding = "8px";
+              row.appendChild(cell);
+            });
+
+            table.appendChild(row);
+          });
+
+          recordsSection.appendChild(table);
+        }
+
+        await loadAttendanceRecords();
+dateFilter.addEventListener("change", async () => {
+  await loadAttendanceRecords();
+});
+
+clearFilterButton.addEventListener("click", async () => {
+  dateFilter.value = "";
+  await loadAttendanceRecords();
+});
+
+// Attendance Summary Report
+const summarySection = addSection("Attendance Summary");
+// Attendance Summary Date Filter
+const summaryFilterContainer = document.createElement("div");
+
+const summaryDateLabel = document.createElement("label");
+summaryDateLabel.textContent = "Summary date: ";
+
+const summaryDateFilter = document.createElement("input");
+summaryDateFilter.type = "date";
+summaryDateFilter.id = "summaryDateFilter";
+
+summaryDateLabel.appendChild(summaryDateFilter);
+summaryFilterContainer.appendChild(summaryDateLabel);
+
+const summaryShowAllButton = document.createElement("button");
+summaryShowAllButton.textContent = "Show All";
+summaryShowAllButton.type = "button";
+
+summaryFilterContainer.appendChild(summaryShowAllButton);
+summarySection.appendChild(summaryFilterContainer);
+
+// Overall Attendance Statistics
+const statsSection = addSection("Overall Attendance Statistics");
+console.log("Stats section element:", statsSection);
+console.log("Stats section connected:", statsSection.isConnected);
+
+
+const statsMessage = addText(
+  "p",
+  "Loading statistics...",
+  statsSection
+);
+
+async function loadAttendanceStatistics() {
+  statsMessage.textContent = "Loading statistics...";
+
+  try {
+    const [studentsResult, attendanceResult] = await Promise.all([
+      client
+        .from("students")
+        .select("id", { count: "exact", head: true }),
+
+      client
+        .from("attendance")
+        .select("status")
+    ]);
+
+    if (studentsResult.error) {
+      throw studentsResult.error;
+    }
+
+    if (attendanceResult.error) {
+      throw attendanceResult.error;
+    }
+
+    const attendanceStats = attendanceResult.data || [];
+    const totalStudents = studentsResult.count ?? 0;
+
+    const totalPresent = attendanceStats.filter(
+      record => record.status === "present"
+    ).length;
+
+    const totalAbsent = attendanceStats.filter(
+      record => record.status === "absent"
+    ).length;
+
+    const totalRecords = attendanceStats.length;
+
+    const overallPercentage = totalRecords === 0
+      ? 0
+      : Math.round((totalPresent / totalRecords) * 100);
+
+    statsSection.innerHTML = "";
+
+    const cards = [
+      ["Total Students", totalStudents],
+      ["Total Present", totalPresent],
+      ["Total Absent", totalAbsent],
+      ["Overall Attendance %", overallPercentage + "%"]
+    ];
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns =
+      "repeat(auto-fit, minmax(140px, 1fr))";
+    grid.style.gap = "12px";
+
+    cards.forEach(([title, value]) => {
+      const card = document.createElement("div");
+      card.style.padding = "16px";
+      card.style.border = "1px solid #ccc";
+      card.style.borderRadius = "10px";
+      card.style.background = "#fff";
+
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+
+      const number = document.createElement("p");
+      number.textContent = String(value);
+      number.style.fontSize = "28px";
+      number.style.fontWeight = "bold";
+      number.style.marginBottom = "0";
+
+      card.append(heading, number);
+      grid.appendChild(card);
+    });
+
+    addText("h2", "Overall Attendance Statistics", statsSection);
+    statsSection.appendChild(grid);
+
+  } catch (error) {
+    console.error("Attendance statistics error:", error);
+    statsMessage.textContent =
+      "Could not load statistics: " + error.message;
+  }
+}
+loadAttendanceStatistics();
+
+        async function loadAttendanceSummary() {
+          summarySection.innerHTML = "";
+          addText("h2", "Attendance Summary", summarySection);
+          addText("p", "Loading summary...", summarySection);
+
+          const { data: students, error: studentsError } = await client
+            .from("students")
+            .select("id, full_name, class_level")
+            .order("full_name");
+
+          if (studentsError) {
+            summarySection.innerHTML = "";
+            addText("p", "Error: " + studentsError.message, summarySection);
+            return;
+          }
+
+          const { data: records, error: recordsError } = await client
+  .from("attendance")
+  .select("student_id, status, attendance_date");
+
+if (recordsError) {
+  summarySection.innerHTML = "";
+  addText("p", "Error: " + recordsError.message, summarySection);
+  return;
+}
+
+const selectedSummaryDate = summaryDateFilter.value;
+
+const filteredSummaryRecords = selectedSummaryDate
+  ? records.filter(
+      (record) => record.attendance_date === selectedSummaryDate
+    )
+  : records;
+
+          if (recordsError) {
+            const selectedSummaryDate = summaryDateFilter.value;
+
+const filteredSummaryRecords = selectedSummaryDate
+  ? records.filter(
+      (record) => record.attendance_date === selectedSummaryDate
+    )
+  : records;
+            summarySection.innerHTML = "";
+            addText("p", "Error: " + recordsError.message, summarySection);
+            return;
+          }
+
+          summarySection.innerHTML = "";
+          addText("h2", "Attendance Summary", summarySection);
+
+          const table = document.createElement("table");
+          table.style.width = "100%";
+          table.style.borderCollapse = "collapse";
+
+const headers = [
+  "Student",
+  "Class",
+  "Present",
+  "Absent",
+  "Late",
+  "Total",
+  "Percentage"
+];
+
+          const headerRow = document.createElement("tr");
+
+          headers.forEach((header) => {
+            const th = document.createElement("th");
+            th.textContent = header;
+            th.style.border = "1px solid #ccc";
+            th.style.padding = "8px";
+            headerRow.appendChild(th);
+          });
+
+          table.appendChild(headerRow);
+
+          students.forEach((student) => {
+            const studentRecords = filteredSummaryRecords.filter(
+  (record) => record.student_id === student.id
+);
+
+            const present = studentRecords.filter(
+              (record) => record.status === "present"
+            ).length;
+
+            const absent = studentRecords.filter(
+              (record) => record.status === "absent"
+            ).length;
+
+            const late = studentRecords.filter(
+              (record) => record.status === "late"
+            ).length;
+            const percentage = studentRecords.length === 0
+  ? 0
+  : Math.round((present / studentRecords.length) * 100);
+            const row = document.createElement("tr");
+
+            [
+  student.full_name,
+  student.class_level || "—",
+  present,
+  absent,
+  late,
+  studentRecords.length,
+  percentage + "%"
+].forEach((value) => {
+              const cell = document.createElement("td");
+              cell.textContent = String(value);
+              cell.style.border = "1px solid #ccc";
+              cell.style.padding = "8px";
+              row.appendChild(cell);
+            });
+
+            table.appendChild(row);
+          });
+
+          summarySection.appendChild(table);
+        }
+
+try {
+  console.log("Starting attendance summary");
+  await loadAttendanceSummary();
+
+  console.log("Attendance statistics finished");
+} catch (error) {
+  console.error("Dashboard error:", error);
+}
+
+console.log("After statistics");
+        
+summaryDateFilter.addEventListener("change", async () => {
+  await loadAttendanceSummary();
+});
+
+summaryShowAllButton.addEventListener("click", async () => {
+  summaryDateFilter.value = "";
+  await loadAttendanceSummary();
+});
+      
+} else if (profile.role === "mentor") {
+  content.innerHTML = "";
+
+  addText("h2", "MYLN Mentor Dashboard");
+  addText("p", "Welcome, " + profile.full_name + "!");
+
+  const mentorSection = addSection("My Assigned Students");
+  mentorSection.classList.add("mentor-students-section");
+
+  addText("p", "Loading assigned students...", mentorSection);
+
+  const { data: mentorRecord, error: mentorError } = await client
+    .from("mentors")
+    .select("id, full_name, skills, status")
+    .eq("profile_id", data.user.id)
+    .maybeSingle();
+
+  if (mentorError) throw mentorError;
+
+  mentorSection.innerHTML = "";
+  addText("h3", "My Assigned Students", mentorSection);
+
+  if (!mentorRecord) {
+    addText("p", "Mentor record not found.", mentorSection);
+  } else {
+    const { data: assignedStudents, error: assignedError } = await client
+      .from("mentor_students")
+      .select("student_id, students(full_name, class_level, institution, status)")
+      .eq("mentor_id", mentorRecord.id);
+
+    if (assignedError) throw assignedError;
+
+    if (!assignedStudents || assignedStudents.length === 0) {
+      addText("p", "No students assigned yet.", mentorSection);
+    } else {
+      const list = document.createElement("ul");
+
+      assignedStudents.forEach((assignment) => {
+        const student = assignment.students;
+        if (!student) return;
+
+        const item = document.createElement("li");
+        item.style.marginBottom = "12px";
+        item.textContent =
+          student.full_name + " | " +
+          student.class_level + " | " +
+          student.institution + " | " +
+          student.status;
+
+        list.appendChild(item);
+      });
+
+      mentorSection.appendChild(list);
+
+      // Attendance Form
+      const mentorAttendanceSection = addSection("Mark Attendance");
+
+      addText(
+        "p",
+        "Mark attendance for your assigned students.",
+        mentorAttendanceSection
+      );
+
+      const mentorAttendanceForm = document.createElement("form"); 
+mentorAttendanceForm.classList.add("mentor-attendance-form");
+      mentorAttendanceForm.style.display = "flex";
+      mentorAttendanceForm.style.flexDirection = "column";
+      mentorAttendanceForm.style.gap = "12px";
+
+      const mentorAttendanceStudentSelect = document.createElement("select");
+mentorAttendanceStudentSelect.classList.add("mentor-attendance-input");
+      mentorAttendanceStudentSelect.required = true;
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Select a student";
+      mentorAttendanceStudentSelect.appendChild(placeholder);
+
+      assignedStudents.forEach((assignment) => {
+        if (!assignment.students) return;
+
+        const option = document.createElement("option");
+        option.value = assignment.student_id;
+        option.textContent =
+          assignment.students.full_name + " (" +
+          assignment.students.class_level + ")";
+
+        mentorAttendanceStudentSelect.appendChild(option);
+      });
+
+      const mentorAttendanceDate = document.createElement("input");
+      mentorAttendanceDate.type = "date";
+      mentorAttendanceDate.required = true;
+
+      const today = new Date();
+      mentorAttendanceDate.value = new Date(
+        today.getTime() - today.getTimezoneOffset() * 60000
+      ).toISOString().slice(0, 10);
+
+      const mentorAttendanceStatus = document.createElement("select");
+      mentorAttendanceStatus.required = true;
+
+      [
+        ["present", "Present"],
+        ["absent", "Absent"],
+        ["late", "Late"],
+        ["excused", "Excused"]
+      ].forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        mentorAttendanceStatus.appendChild(option);
+      });
+
+      const mentorAttendanceNotes = document.createElement("textarea");
+      mentorAttendanceNotes.placeholder = "Notes (optional)";
+      mentorAttendanceNotes.rows = 3;
+
+      const mentorAttendanceButton = document.createElement("button");
+      mentorAttendanceButton.type = "submit";
+      mentorAttendanceButton.textContent = "Save Attendance";
+
+      const mentorAttendanceMessage = document.createElement("p");
+
+      mentorAttendanceForm.append(
+        mentorAttendanceStudentSelect,
+        mentorAttendanceDate,
+        mentorAttendanceStatus,
+        mentorAttendanceNotes,
+        mentorAttendanceButton,
+        mentorAttendanceMessage
+      );
+
+      mentorAttendanceForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        mentorAttendanceButton.disabled = true;
+        mentorAttendanceMessage.textContent = "Saving attendance...";
+
+        try {
+          const { error: attendanceError } = await client
+            .from("attendance")
+            .insert({
+              student_id: mentorAttendanceStudentSelect.value,
+              attendance_date: mentorAttendanceDate.value,
+              status: mentorAttendanceStatus.value,
+              notes: mentorAttendanceNotes.value.trim() || null,
+              marked_by: data.user.id
+            });
+
+          if (attendanceError) throw attendanceError;
+
+          mentorAttendanceMessage.textContent =
+            "Attendance saved successfully!";
+          mentorAttendanceMessage.style.color = "green";
+          mentorAttendanceNotes.value = "";
+        
+        } catch (error) {
+          mentorAttendanceMessage.textContent =
+            error.code === "23505"
+              ? "Attendance already marked for this student today."
+              : "Error: " + error.message;
+          mentorAttendanceMessage.style.color = "#b91c1c";
+        } finally {
+          mentorAttendanceButton.disabled = false;
+        }
+
+      });
+
+      mentorAttendanceSection.appendChild(mentorAttendanceForm);
+    }
+  }
+}
+      document.getElementById("logoutButton").addEventListener(
+        "click", async () => {
+          const { error: logoutError } = await client.auth.signOut();
+
+          if (logoutError) {
+            alert(logoutError.message);
+            return;
+          }
+
+          window.location.reload();
+        }
+      );
+
+    } catch (error) {
+      message.textContent = error.message || "Login failed.";
+      message.style.color = "#b91c1c";
+    } finally {
+      const currentButton = document.getElementById("loginButton");
+      if (currentButton) {
+        currentButton.disabled = false;
+        currentButton.textContent = "Login";
+      }
+    }
+  });
+  console.log("Before creating statistics section");
+  console.log("MYLN index.html loaded");
+</script>
+
+</body>
+</html>
