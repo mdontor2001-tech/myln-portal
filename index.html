@@ -1155,10 +1155,41 @@ if (!attendance || attendance.length === 0) {
   }
 });
 
-            rejectButton.addEventListener("click", async () => {
-              resultMessage.textContent =
-                "Rejection action will be enabled in the next step.";
-            });
+           rejectButton.addEventListener("click", async () => {
+  const confirmed = confirm(
+    `Are you sure you want to reject ${pendingStudent.full_name}'s registration?`
+  );
+
+  if (!confirmed) return;
+
+  rejectButton.disabled = true;
+  resultMessage.textContent = "Rejecting registration...";
+
+  try {
+    const { data: rejectedProfile, error } = await client
+      .from("profiles")
+      .update({ account_status: "rejected" })
+      .eq("id", pendingStudent.id)
+      .eq("account_status", "pending")
+      .select("id")
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!rejectedProfile) {
+      throw new Error(
+        "The registration was not pending or could not be rejected."
+      );
+    }
+
+    resultMessage.textContent =
+      "Registration rejected successfully. Refresh the dashboard.";
+  } catch (error) {
+    resultMessage.textContent = "Rejection failed: " + error.message;
+  } finally {
+    rejectButton.disabled = false;
+  }
+});
 
             item.append(approveButton, rejectButton, resultMessage);
             pendingSection.appendChild(item);
