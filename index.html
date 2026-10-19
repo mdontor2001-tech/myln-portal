@@ -2019,17 +2019,21 @@ mentorAttendanceStudentSelect.classList.add("mentor-attendance-input");
   }
 }
       document.getElementById("logoutButton").addEventListener(
-        "click", async () => {
-          const { error: logoutError } = await client.auth.signOut();
+  "click", async () => {
+    console.time("SUPABASE LOGOUT");
 
-          if (logoutError) {
-            alert(logoutError.message);
-            return;
-          }
+    const { error: logoutError } = await client.auth.signOut();
 
-          window.location.reload();
-        }
-      );
+    console.timeEnd("SUPABASE LOGOUT");
+
+    if (logoutError) {
+      alert(logoutError.message);
+      return;
+    }
+
+    window.location.reload();
+  }
+);
 
     } catch (error) {
       message.textContent = error.message || "Login failed.";
