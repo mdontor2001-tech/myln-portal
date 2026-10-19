@@ -1011,7 +1011,7 @@ if (!attendance || attendance.length === 0) {
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
-  const tbody = document.createElement("tbody");
+  var tbody = document.createElement("tbody");
 
   attendance.forEach(function (record) {
     const row = document.createElement("tr");
@@ -1196,39 +1196,533 @@ if (!attendance || attendance.length === 0) {
           });
         }
 
-        const studentsSection = addSection("Student Management");
-        addText("p", "Loading students...", studentsSection);
 
-        const { data: students, error: studentsError } = await client
-          .from("students")
-          .select("full_name, class_level, institution, guardian_phone, status")
-          .order("full_name", { ascending: true });
+const studentsSection = addSection("Student Management");
+addText("p", "Loading students...", studentsSection);
 
-        if (studentsError) throw studentsError;
+const { data: students, error: studentsError } = await client
+  .from("students")
+  .select("id, full_name, class_level, institution, guardian_phone, status")
+  .order("full_name", { ascending: true });
 
-        studentsSection.innerHTML = "";
-        addText("h2", "Student Management", studentsSection);
+if (studentsError) throw studentsError;
 
-        if (!students || students.length === 0) {
-          addText("p", "No students found.", studentsSection);
+studentsSection.innerHTML = "";
+addText("h2", "Student Management", studentsSection);
+
+const statusFilter = document.createElement("select");
+
+[
+  ["all", "All Students"],
+  ["active", "Active"],
+  ["inactive", "Inactive"],
+  ["completed", "Completed"]
+].forEach(([value, label]) => {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = label;
+  statusFilter.appendChild(option);
+});
+
+statusFilter.style.margin = "12px 0";
+statusFilter.style.padding = "8px";
+studentsSection.appendChild(statusFilter);
+
+const studentSearch = document.createElement("input");
+studentSearch.type = "search";
+studentSearch.placeholder = "Search student by name...";
+studentSearch.style.display = "block";
+studentSearch.style.width = "100%";
+studentSearch.style.maxWidth = "400px";
+studentSearch.style.padding = "10px";
+studentSearch.style.margin = "8px 0 16px";
+studentSearch.style.boxSizing = "border-box";
+
+studentsSection.appendChild(studentSearch);
+
+const addStudentForm = document.createElement("form");
+addStudentForm.style.margin = "16px 0";
+addStudentForm.style.padding = "16px";
+addStudentForm.style.border = "1px solid #ddd";
+addStudentForm.style.borderRadius = "8px";
+
+const addStudentTitle = document.createElement("h3");
+addStudentTitle.textContent = "Add New Student";
+addStudentForm.appendChild(addStudentTitle);
+
+const newStudentFields = [
+  { key: "full_name", label: "Student Full Name", required: true },
+  { key: "class_level", label: "Class" },
+  { key: "institution", label: "Institution" },
+  { key: "guardian_phone", label: "Guardian Phone" }
+];
+
+newStudentFields.forEach((field) => {
+  const label = document.createElement("label");
+  label.textContent = field.label;
+  label.style.display = "block";
+  label.style.marginTop = "10px";
+
+  const input = document.createElement("input");
+  input.name = field.key;
+  input.type = "text";
+  input.required = Boolean(field.required);
+  input.style.display = "block";
+  input.style.width = "100%";
+  input.style.maxWidth = "400px";
+  input.style.padding = "8px";
+  input.style.boxSizing = "border-box";
+  input.style.marginTop = "4px";
+
+  label.appendChild(input);
+  addStudentForm.appendChild(label);
+});
+
+const addStudentStatusLabel = document.createElement("label");
+addStudentStatusLabel.textContent = "Student Status";
+addStudentStatusLabel.style.display = "block";
+addStudentStatusLabel.style.marginTop = "10px";
+
+const addStudentStatus = document.createElement("select");
+addStudentStatus.name = "status";
+
+["active", "inactive", "completed"].forEach((status) => {
+  const option = document.createElement("option");
+  option.value = status;
+  option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+  addStudentStatus.appendChild(option);
+});
+
+addStudentStatus.style.display = "block";
+addStudentStatus.style.marginTop = "4px";
+addStudentStatusLabel.appendChild(addStudentStatus);
+addStudentForm.appendChild(addStudentStatusLabel);
+
+const addStudentButton = document.createElement("button");
+addStudentButton.type = "submit";
+addStudentButton.textContent = "Add Student";
+addStudentButton.style.marginTop = "14px";
+addStudentForm.appendChild(addStudentButton);
+
+studentsSection.appendChild(addStudentForm);
+
+addStudentForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const fullName =
+    addStudentForm.elements["full_name"].value.trim();
+
+  if (!fullName) {
+    alert("Please enter the student's full name.");
+    return;
+  }
+
+  const newStudent = {
+    full_name: fullName,
+    class_level:
+      addStudentForm.elements["class_level"].value.trim() || null,
+    institution:
+      addStudentForm.elements["institution"].value.trim() || null,
+    guardian_phone:
+      addStudentForm.elements["guardian_phone"].value.trim() || null,
+    status: addStudentForm.elements["status"].value
+  };
+
+  addStudentButton.disabled = true;
+  addStudentButton.textContent = "Adding...";
+
+  try {
+    const { data, error } = await client
+      .from("students")
+      .insert(newStudent)
+      .select("id, full_name, class_level, institution, guardian_phone, status")
+      .single();
+
+    if (error) throw error;
+
+ 
+alert("Student added successfully!");
+
+students.push(data);
+students.sort((a, b) =>
+  (a.full_name || "").localeCompare(b.full_name || "")
+);
+
+addStudentForm.reset();
+addStudentStatus.value = "active";
+
+const newRow = document.createElement("tr");
+
+[
+  data.full_name || "—",
+  data.class_level || "—",
+  data.institution || "—",
+  data.guardian_phone || "—",
+  data.status || "—"
+].forEach((value) => {
+  const td = document.createElement("td");
+  td.textContent = value;
+  td.style.border = "1px solid #ddd";
+  td.style.padding = "10px";
+  newRow.appendChild(td);
+});
+
+const newActionCell = document.createElement("td");
+newActionCell.style.border = "1px solid #ddd";
+newActionCell.style.padding = "10px";
+
+
+const newEditButton = document.createElement("button");
+newEditButton.type = "button";
+newEditButton.textContent = "Edit";
+
+newEditButton.addEventListener("click", () => {
+  const existingForm = newActionCell.querySelector("form");
+
+  if (existingForm) {
+    existingForm.remove();
+    return;
+  }
+
+  const editForm = document.createElement("form");
+  editForm.style.minWidth = "200px";
+  editForm.style.marginTop = "10px";
+
+  const fields = [
+    { key: "full_name", label: "Full Name" },
+    { key: "class_level", label: "Class" },
+    { key: "institution", label: "Institution" },
+    { key: "guardian_phone", label: "Guardian Phone" },
+    { key: "status", label: "Student Status" }
+  ];
+
+  fields.forEach((field) => {
+    const label = document.createElement("label");
+    label.textContent = field.label;
+
+    const input = field.key === "status"
+      ? document.createElement("select")
+      : document.createElement("input");
+
+    input.name = field.key;
+    input.style.display = "block";
+    input.style.width = "100%";
+    input.style.boxSizing = "border-box";
+
+    if (field.key === "status") {
+      ["active", "inactive", "completed"].forEach((status) => {
+        const option = document.createElement("option");
+        option.value = status;
+        option.textContent =
+          status.charAt(0).toUpperCase() + status.slice(1);
+        input.appendChild(option);
+      });
+
+      input.value = data.status || "active";
+    } else {
+      input.type = "text";
+      input.value = data[field.key] || "";
+    }
+
+    label.appendChild(input);
+    editForm.appendChild(label);
+  });
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "submit";
+  saveButton.textContent = "Save Changes";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.textContent = "Cancel";
+  cancelButton.style.marginLeft = "8px";
+  cancelButton.addEventListener("click", () => editForm.remove());
+
+  editForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+
+    const updatedStudent = {};
+
+    fields.forEach((field) => {
+      updatedStudent[field.key] =
+        editForm.elements[field.key].value.trim() || null;
+    });
+
+    try {
+      const { error } = await client
+        .from("students")
+        .update(updatedStudent)
+        .eq("id", data.id);
+
+      if (error) throw error;
+
+      Object.assign(data, updatedStudent);
+
+      const values = [
+        data.full_name || "—",
+        data.class_level || "—",
+        data.institution || "—",
+        data.guardian_phone || "—",
+        data.status || "—"
+      ];
+
+      Array.from(newRow.cells).slice(0, 5).forEach((cell, index) => {
+        cell.textContent = values[index];
+      });
+
+      editForm.remove();
+      alert("Student information updated successfully!");
+    } catch (error) {
+      alert("Update failed: " + error.message);
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Changes";
+    }
+  });
+
+  editForm.append(saveButton, cancelButton);
+  newActionCell.appendChild(editForm);
+});
+
+newActionCell.appendChild(newEditButton);
+newRow.appendChild(newActionCell);
+
+const currentTbody = studentsSection.querySelector("tbody");
+
+if (!currentTbody) {
+  alert("Student saved, but the table could not be updated. Please refresh the page.");
+} else {
+  currentTbody.appendChild(newRow);
+
+}
+
+
+    // Reload the page to refresh the table and search/filter results.
+  
+  } catch (error) {
+    alert("Could not add student: " + error.message);
+  } finally {
+    addStudentButton.disabled = false;
+    addStudentButton.textContent = "Add Student";
+  }
+});
+
+if (!students || students.length === 0) {
+  addText("p", "No students found.", studentsSection);
+} else {
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.style.marginTop = "16px";
+
+  const headers = [
+    "Full Name",
+    "Class",
+    "Institution",
+    "Guardian Phone",
+    "Status",
+    "Action"
+  ];
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  headers.forEach((heading) => {
+    const th = document.createElement("th");
+    th.textContent = heading;
+    th.style.border = "1px solid #ddd";
+    th.style.padding = "10px";
+    th.style.textAlign = "left";
+    th.style.backgroundColor = "#f1f5f9";
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+
+const renderStudents = () => {
+  const selectedStatus = statusFilter.value;
+  const searchText = studentSearch.value.trim().toLowerCase();
+
+  Array.from(tbody.rows).forEach((row, index) => {
+    const student = students[index];
+    if (!student) return;
+
+    const matchesStatus =
+      selectedStatus === "all" ||
+      student.status === selectedStatus;
+
+    const matchesName =
+      (student.full_name || "")
+        .toLowerCase()
+        .includes(searchText);
+
+    row.style.display =
+      matchesStatus && matchesName ? "" : "none";
+  });
+};
+
+statusFilter.addEventListener("change", renderStudents);
+studentSearch.addEventListener("input", renderStudents);
+
+  const tbody = document.createElement("tbody");
+
+  students.forEach((student) => {
+    const row = document.createElement("tr");
+
+    [
+      student.full_name || "—",
+      student.class_level || "—",
+      student.institution || "—",
+      student.guardian_phone || "—",
+      student.status || "—"
+    ].forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      td.style.border = "1px solid #ddd";
+      td.style.padding = "10px";
+      row.appendChild(td);
+    });
+
+    const actionCell = document.createElement("td");
+    actionCell.style.border = "1px solid #ddd";
+    actionCell.style.padding = "10px";
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+
+    editButton.addEventListener("click", () => {
+      const existingForm = actionCell.querySelector("form");
+      if (existingForm) {
+        existingForm.remove();
+        return;
+      }
+
+      const editForm = document.createElement("form");
+      editForm.style.minWidth = "200px";
+      editForm.style.marginTop = "10px";
+
+      const fields = [
+        { key: "full_name", label: "Full Name" },
+        { key: "class_level", label: "Class" },
+        { key: "institution", label: "Institution" },
+        { key: "guardian_phone", label: "Guardian Phone" },
+        { key: "status", label: "Student Status" }
+      ];
+
+      fields.forEach((field) => {
+        const label = document.createElement("label");
+        label.textContent = field.label;
+        label.style.display = "block";
+        label.style.marginTop = "8px";
+
+        const input = field.key === "status"
+          ? document.createElement("select")
+          : document.createElement("input");
+
+        input.name = field.key;
+        input.style.display = "block";
+        input.style.width = "100%";
+        input.style.boxSizing = "border-box";
+        input.style.marginTop = "4px";
+
+        if (field.key === "status") {
+          ["active", "inactive", "completed"].forEach((status) => {
+            const option = document.createElement("option");
+            option.value = status;
+            option.textContent =
+              status.charAt(0).toUpperCase() + status.slice(1);
+            input.appendChild(option);
+          });
+          input.value = student.status || "active";
         } else {
-          const list = document.createElement("ul");
+          input.type = "text";
+          input.value = student[field.key] || "";
+        }
 
-          students.forEach((student) => {
-            const item = document.createElement("li");
-            item.style.marginBottom = "12px";
-            item.textContent =
-              (student.full_name || "No name") + " | " +
-              (student.class_level || "No class") + " | " +
-              (student.institution || "No institution") + " | " +
-              (student.guardian_phone || "No guardian phone") + " | " +
-              student.status;
+        label.appendChild(input);
+        editForm.appendChild(label);
+      });
 
-            list.appendChild(item);
+      const saveButton = document.createElement("button");
+      saveButton.type = "submit";
+      saveButton.textContent = "Save Changes";
+      saveButton.style.marginTop = "12px";
+
+      const cancelButton = document.createElement("button");
+      cancelButton.type = "button";
+      cancelButton.textContent = "Cancel";
+      cancelButton.style.marginTop = "12px";
+      cancelButton.style.marginLeft = "8px";
+      cancelButton.addEventListener("click", () => editForm.remove());
+
+      editForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+
+        const updatedStudent = {};
+
+        fields.forEach((field) => {
+          updatedStudent[field.key] =
+            editForm.elements[field.key].value.trim() || null;
+        });
+
+        try {
+          const { error } = await client
+            .from("students")
+            .update(updatedStudent)
+            .eq("id", student.id);
+
+          if (error) throw error;
+
+          Object.assign(student, updatedStudent);
+
+          const values = [
+            student.full_name || "—",
+            student.class_level || "—",
+            student.institution || "—",
+            student.guardian_phone || "—",
+            student.status || "—"
+          ];
+
+          Array.from(row.cells).slice(0, 5).forEach((cell, index) => {
+            cell.textContent = values[index];
           });
 
-          studentsSection.appendChild(list);
+          editForm.remove();
+          alert("Student information updated successfully!");
+        } catch (error) {
+          alert("Update failed: " + error.message);
+        } finally {
+          saveButton.disabled = false;
+          saveButton.textContent = "Save Changes";
         }
+      });
+
+      editForm.append(saveButton, cancelButton);
+      actionCell.appendChild(editForm);
+    });
+
+    actionCell.appendChild(editButton);
+    row.appendChild(actionCell);
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+renderStudents();
+  const tableWrapper = document.createElement("div");
+  tableWrapper.style.width = "100%";
+  tableWrapper.style.overflowX = "auto";
+  tableWrapper.appendChild(table);
+
+  studentsSection.appendChild(tableWrapper);
+}
 
         // Mentor Management
         const mentorsSection = addSection("Mentor Management");
@@ -1244,24 +1738,204 @@ if (!attendance || attendance.length === 0) {
         mentorsSection.innerHTML = "";
         addText("h2", "Mentor Management", mentorsSection);
 
-        if (!mentors || mentors.length === 0) {
-          addText("p", "No mentors found.", mentorsSection);
-        } else {
-          const list = document.createElement("ul");
 
-          mentors.forEach((mentor) => {
-            const item = document.createElement("li");
-            item.style.marginBottom = "12px";
-            item.textContent =
-              mentor.full_name + " | " +
-              mentor.skills + " | " +
-              mentor.status;
+if (!mentors || mentors.length === 0) {
+  addText("p", "No mentors found.", mentorsSection);
+} else {
+  const tableWrapper = document.createElement("div");
+  tableWrapper.style.overflowX = "auto";
 
-            list.appendChild(item);
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  ["Name", "Phone", "Skills", "Status", "Action"].forEach((heading) => {
+    const th = document.createElement("th");
+    th.textContent = heading;
+    th.style.padding = "10px";
+    th.style.border = "1px solid #ccc";
+    th.style.textAlign = "left";
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+const mentorStatusFilter = document.createElement("select");
+
+[
+  ["all", "All Mentors"],
+  ["pending", "Pending"],
+  ["approved", "Approved"],
+  ["inactive", "Inactive"]
+].forEach(([value, label]) => {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = label;
+  mentorStatusFilter.appendChild(option);
+});
+
+mentorStatusFilter.style.padding = "8px";
+mentorStatusFilter.style.margin = "10px 0";
+mentorsSection.appendChild(mentorStatusFilter);
+  const tbody = document.createElement("tbody");
+
+const mentorRows = [];
+
+mentorStatusFilter.addEventListener("change", () => {
+  mentorRows.forEach(({ row, mentor }) => {
+    row.style.display =
+      mentorStatusFilter.value === "all" ||
+      mentor.status === mentorStatusFilter.value
+        ? ""
+        : "none";
+  });
+});
+
+  mentors.forEach((mentor) => {
+    const row = document.createElement("tr");
+
+    [
+      mentor.full_name || "—",
+      mentor.phone || "—",
+      mentor.skills || "—",
+      mentor.status || "—"
+    ].forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      td.style.padding = "10px";
+      td.style.border = "1px solid #ccc";
+      row.appendChild(td);
+    });
+    const actionCell = document.createElement("td");
+    actionCell.style.padding = "10px";
+    actionCell.style.border = "1px solid #ccc";
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+
+    editButton.addEventListener("click", () => {
+      const existingForm = actionCell.querySelector("form");
+
+      if (existingForm) {
+        existingForm.remove();
+        return;
+      }
+
+      const editForm = document.createElement("form");
+      editForm.style.display = "grid";
+      editForm.style.gap = "8px";
+      editForm.style.minWidth = "180px";
+
+      const nameInput = document.createElement("input");
+      nameInput.placeholder = "Full name";
+      nameInput.value = mentor.full_name || "";
+      nameInput.required = true;
+
+      const phoneInput = document.createElement("input");
+      phoneInput.placeholder = "Phone";
+      phoneInput.value = mentor.phone || "";
+
+      const skillsInput = document.createElement("input");
+      skillsInput.placeholder = "Skills";
+      skillsInput.value = mentor.skills || "";
+
+      const mentorStatus = document.createElement("select");
+
+      ["pending", "approved", "inactive"].forEach((status) => {
+        const option = document.createElement("option");
+        option.value = status;
+        option.textContent =
+          status.charAt(0).toUpperCase() + status.slice(1);
+        mentorStatus.appendChild(option);
+      });
+
+      mentorStatus.value = mentor.status || "pending";
+
+      const saveButton = document.createElement("button");
+      saveButton.type = "submit";
+      saveButton.textContent = "Save Changes";
+
+      const cancelButton = document.createElement("button");
+      cancelButton.type = "button";
+      cancelButton.textContent = "Cancel";
+      cancelButton.addEventListener("click", () => editForm.remove());
+
+      editForm.append(
+        nameInput,
+        phoneInput,
+        skillsInput,
+        mentorStatus,
+        saveButton,
+        cancelButton
+      );
+
+      editForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+
+        const updatedMentor = {
+          full_name: nameInput.value.trim(),
+          phone: phoneInput.value.trim() || null,
+          skills: skillsInput.value.trim() || null,
+          status: mentorStatus.value
+        };
+
+        try {
+          const { error } = await client
+            .from("mentors")
+            .update(updatedMentor)
+            .eq("id", mentor.id);
+
+          if (error) throw error;
+
+          Object.assign(mentor, updatedMentor);
+row.style.display =
+  mentorStatusFilter.value === "all" ||
+  mentor.status === mentorStatusFilter.value
+    ? ""
+    : "none";
+          const values = [
+            mentor.full_name || "—",
+            mentor.phone || "—",
+            mentor.skills || "—",
+            mentor.status || "—"
+          ];
+
+          Array.from(row.cells).slice(0, 4).forEach((cell, index) => {
+            cell.textContent = values[index];
           });
 
-          mentorsSection.appendChild(list);
+          editForm.remove();
+          alert("Mentor information updated successfully!");
+        } catch (error) {
+          alert("Update failed: " + error.message);
+        } finally {
+          saveButton.disabled = false;
+          saveButton.textContent = "Save Changes";
         }
+      });
+
+      actionCell.appendChild(editForm);
+    });
+
+    actionCell.appendChild(editButton);
+    row.appendChild(actionCell);
+    mentorRows.push({ row, mentor });
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+  tableWrapper.appendChild(table);
+  mentorsSection.appendChild(tableWrapper);
+}
+
         // Assign Student to Mentor
         addText("h3", "Assign Student to Mentor", mentorsSection);
 
@@ -1478,6 +2152,33 @@ attendanceMessage.textContent =
           recordsSection
         );
 // Attendance Date Filter
+
+const studentHistoryFilter = document.createElement("select");
+
+const allStudentsOption = document.createElement("option");
+allStudentsOption.value = "all";
+allStudentsOption.textContent = "All Students";
+studentHistoryFilter.appendChild(allStudentsOption);
+
+const { data: historyStudents, error: historyStudentsError } =
+  await client
+    .from("students")
+    .select("id, full_name, class_level")
+    .order("full_name", { ascending: true });
+
+if (historyStudentsError) throw historyStudentsError;
+
+(historyStudents || []).forEach((student) => {
+  const option = document.createElement("option");
+  option.value = student.id;
+  option.textContent =
+    student.full_name + " - " + (student.class_level || "No class");
+  studentHistoryFilter.appendChild(option);
+});
+
+studentHistoryFilter.style.padding = "8px";
+studentHistoryFilter.style.margin = "8px 8px 8px 0";
+
 const filterContainer = document.createElement("div");
 
 const filterLabel = document.createElement("label");
@@ -1503,12 +2204,13 @@ recordsSection.appendChild(filterContainer);
           const { data: records, error: recordsError } = await client
             .from("attendance")
             .select(`
-              id,
-              attendance_date,
-              status,
-              notes,
-              students(full_name, class_level)
-            `)
+  id,
+  student_id,
+  attendance_date,
+  status,
+  notes,
+  students(full_name, class_level)
+`)
             .order("attendance_date", { ascending: false });
 
           if (recordsError) {
@@ -1518,6 +2220,7 @@ recordsSection.appendChild(filterContainer);
 
           recordsSection.innerHTML = "";
           addText("h2", "Attendance Records", recordsSection);
+          recordsSection.appendChild(studentHistoryFilter);
           recordsSection.appendChild(filterContainer);
           if (!records || records.length === 0) {
             addText("p", "No attendance records found.", recordsSection);
@@ -1528,13 +2231,14 @@ recordsSection.appendChild(filterContainer);
           table.style.width = "100%";
           table.style.borderCollapse = "collapse";
 
-          const headers = [
-            "Student",
-            "Class",
-            "Date",
-            "Status",
-            "Notes"
-          ];
+const headers = [
+  "Student",
+  "Class",
+  "Date",
+  "Status",
+  "Notes",
+  "Action"
+];
 
           const headerRow = document.createElement("tr");
 
@@ -1548,11 +2252,66 @@ recordsSection.appendChild(filterContainer);
           });
 
           table.appendChild(headerRow);
-const selectedDate = dateFilter.value;
 
-const filteredRecords = selectedDate
-  ? records.filter((record) => record.attendance_date === selectedDate)
-  : records;
+const selectedDate = dateFilter.value;
+const selectedStudentId = studentHistoryFilter.value;
+
+const filteredRecords = records.filter((record) => {
+  const matchesDate =
+    !selectedDate || record.attendance_date === selectedDate;
+
+  const matchesStudent =
+    selectedStudentId === "all" ||
+    record.student_id === selectedStudentId;
+
+  return matchesDate && matchesStudent;
+});
+  
+const summary = document.createElement("div");
+summary.style.display = "flex";
+summary.style.flexWrap = "wrap";
+summary.style.gap = "12px";
+summary.style.margin = "16px 0";
+
+const counts = {
+  present: 0,
+  absent: 0,
+  late: 0
+};
+
+filteredRecords.forEach((record) => {
+  const status = (record.status || "").toLowerCase();
+
+  if (Object.prototype.hasOwnProperty.call(counts, status)) {
+    counts[status]++;
+  }
+});
+
+[
+  ["Present", counts.present],
+  ["Absent", counts.absent],
+  ["Late", counts.late],
+  ["Total Records", filteredRecords.length]
+].forEach(([label, count]) => {
+  const card = document.createElement("div");
+  card.style.padding = "12px 16px";
+  card.style.border = "1px solid #ccc";
+  card.style.borderRadius = "8px";
+  card.style.minWidth = "110px";
+
+  const title = document.createElement("p");
+  title.textContent = label;
+  title.style.margin = "0 0 8px";
+
+  const value = document.createElement("strong");
+  value.textContent = count;
+  value.style.fontSize = "22px";
+
+  card.append(title, value);
+  summary.appendChild(card);
+});
+
+recordsSection.appendChild(summary);
           filteredRecords.forEach((record) => {
             const row = document.createElement("tr");
             const student = record.students;
@@ -1570,6 +2329,135 @@ const filteredRecords = selectedDate
               cell.style.padding = "8px";
               row.appendChild(cell);
             });
+            
+const actionCell = document.createElement("td");
+actionCell.style.border = "1px solid #ccc";
+actionCell.style.padding = "8px";
+
+const editButton = document.createElement("button");
+editButton.type = "button";
+editButton.textContent = "Edit";
+
+editButton.addEventListener("click", () => {
+  const existingForm = actionCell.querySelector("form");
+
+  if (existingForm) {
+    existingForm.remove();
+    return;
+  }
+
+  const editForm = document.createElement("form");
+  editForm.style.display = "grid";
+  editForm.style.gap = "8px";
+  editForm.style.minWidth = "150px";
+
+  const editDate = document.createElement("input");
+  editDate.type = "date";
+  editDate.required = true;
+  editDate.value = record.attendance_date;
+
+  const editStatus = document.createElement("select");
+
+  ["present", "absent", "late"].forEach((status) => {
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent =
+      status.charAt(0).toUpperCase() + status.slice(1);
+    editStatus.appendChild(option);
+  });
+
+  editStatus.value = record.status;
+
+  const editNotes = document.createElement("input");
+  editNotes.type = "text";
+  editNotes.placeholder = "Notes (optional)";
+  editNotes.value = record.notes || "";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "submit";
+  saveButton.textContent = "Save";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.textContent = "Cancel";
+  cancelButton.addEventListener("click", () => editForm.remove());
+
+  editForm.append(
+    editDate,
+    editStatus,
+    editNotes,
+    saveButton,
+    cancelButton
+  );
+
+  editForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+
+    try {
+      const { error } = await client
+        .from("attendance")
+        .update({
+          attendance_date: editDate.value,
+          status: editStatus.value,
+          notes: editNotes.value.trim() || null
+        })
+        .eq("id", record.id);
+
+      if (error) throw error;
+
+      alert("Attendance updated successfully!");
+      await loadAttendanceRecords();
+    } catch (error) {
+      alert("Update failed: " + error.message);
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = "Save";
+    }
+  });
+
+  actionCell.appendChild(editForm);
+});
+
+const deleteButton = document.createElement("button");
+deleteButton.type = "button";
+deleteButton.textContent = "Delete";
+deleteButton.style.marginLeft = "8px";
+
+deleteButton.addEventListener("click", async () => {
+  const confirmed = confirm(
+    "Are you sure you want to delete this attendance record?"
+  );
+
+  if (!confirmed) return;
+
+  deleteButton.disabled = true;
+  deleteButton.textContent = "Deleting...";
+
+  try {
+    const { error } = await client
+      .from("attendance")
+      .delete()
+      .eq("id", record.id);
+
+    if (error) throw error;
+
+    alert("Attendance record deleted successfully!");
+    await loadAttendanceRecords();
+  } catch (error) {
+    alert("Delete failed: " + error.message);
+  } finally {
+    deleteButton.disabled = false;
+    deleteButton.textContent = "Delete";
+  }
+});
+
+actionCell.appendChild(deleteButton);
+
+actionCell.appendChild(editButton);
+row.appendChild(actionCell);
 
             table.appendChild(row);
           });
@@ -1579,6 +2467,10 @@ const filteredRecords = selectedDate
 
         await loadAttendanceRecords();
 dateFilter.addEventListener("change", async () => {
+  await loadAttendanceRecords();
+});
+
+studentHistoryFilter.addEventListener("change", async () => {
   await loadAttendanceRecords();
 });
 
@@ -2031,7 +2923,6 @@ mentorAttendanceStudentSelect.classList.add("mentor-attendance-input");
       return;
     }
 
-    window.location.reload();
   }
 );
 
