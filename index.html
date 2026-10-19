@@ -1218,11 +1218,11 @@ if (!attendance || attendance.length === 0) {
             const item = document.createElement("li");
             item.style.marginBottom = "12px";
             item.textContent =
- (student.full_name || "No name") + " | " +
-(student.class_level || "No class") + " | " +
-(student.institution || "No institution") + " | " +
-(student.guardian_phone || "No guardian phone") + " | " +
-student.status;
+              (student.full_name || "No name") + " | " +
+              (student.class_level || "No class") + " | " +
+              (student.institution || "No institution") + " | " +
+              (student.guardian_phone || "No guardian phone") + " | " +
+              student.status;
 
             list.appendChild(item);
           });
