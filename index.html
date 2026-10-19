@@ -1062,6 +1062,61 @@ if (!attendance || attendance.length === 0) {
         addText("p", "Total Profiles: " + results[2].count, summary);
         addText("p", "Attendance Records: " + results[3].count, summary);
 
+        // Pending Student Approval
+        const pendingSection = addSection("Pending Student Approval");
+        addText("p", "Loading pending registrations...", pendingSection);
+
+        const { data: pendingProfiles, error: pendingError } = await client
+          .from("profiles")
+          .select("id, full_name, account_status, created_at")
+          .eq("role", "student")
+          .eq("account_status", "pending")
+          .order("created_at", { ascending: false });
+
+        if (pendingError) throw pendingError;
+
+        pendingSection.innerHTML = "";
+        addText("h2", "Pending Student Approval", pendingSection);
+
+        if (!pendingProfiles || pendingProfiles.length === 0) {
+          addText("p", "No pending registrations.", pendingSection);
+        } else {
+          pendingProfiles.forEach((pendingStudent) => {
+            const item = document.createElement("div");
+            item.style.marginBottom = "16px";
+            item.style.padding = "12px";
+            item.style.border = "1px solid #ddd";
+            item.style.borderRadius = "8px";
+
+            addText("strong", pendingStudent.full_name || "Unnamed Student", item);
+            addText("p", "Status: " + pendingStudent.account_status, item);
+
+            const approveButton = document.createElement("button");
+            approveButton.type = "button";
+            approveButton.textContent = "Approve";
+
+            const rejectButton = document.createElement("button");
+            rejectButton.type = "button";
+            rejectButton.textContent = "Reject";
+            rejectButton.style.marginLeft = "8px";
+
+            const resultMessage = document.createElement("p");
+
+            approveButton.addEventListener("click", async () => {
+              resultMessage.textContent =
+                "Approval requires creating the student record first.";
+            });
+
+            rejectButton.addEventListener("click", async () => {
+              resultMessage.textContent =
+                "Rejection action will be enabled in the next step.";
+            });
+
+            item.append(approveButton, rejectButton, resultMessage);
+            pendingSection.appendChild(item);
+          });
+        }
+
         const studentsSection = addSection("Student Management");
         addText("p", "Loading students...", studentsSection);
 
