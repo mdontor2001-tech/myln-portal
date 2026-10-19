@@ -640,6 +640,47 @@ td {
       <button id="loginButton" type="submit">Login</button>
     </form>
 
+    </form>
+
+    <hr>
+
+    <h2>Student Registration</h2>
+    <p class="subtitle">Register for MYLN Portal</p>
+
+    <form id="registerForm">
+      <label for="registerName">Full Name</label>
+      <input
+        id="registerName"
+        type="text"
+        required
+        autocomplete="name"
+        placeholder="Enter your full name"
+      >
+
+      <label for="registerEmail">Email Address</label>
+      <input
+        id="registerEmail"
+        type="email"
+        required
+        autocomplete="email"
+        placeholder="Enter your email"
+      >
+
+      <label for="registerPassword">Create Password</label>
+      <input
+        id="registerPassword"
+        type="password"
+        required
+        minlength="8"
+        autocomplete="new-password"
+        placeholder="At least 8 characters"
+      >
+
+      <button id="registerButton" type="submit">
+        Register as Student
+      </button>
+    </form>
+
     <div id="message" role="status" aria-live="polite"></div>
     <p class="hint">Authorized MYLN users only.</p>
   </main>
@@ -657,6 +698,50 @@ td {
   const form = document.getElementById("loginForm");
   const button = document.getElementById("loginButton");
   const message = document.getElementById("message");
+
+  const registerForm = document.getElementById("registerForm");
+  const registerButton = document.getElementById("registerButton");
+
+  registerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    message.textContent = "";
+    registerButton.disabled = true;
+    registerButton.textContent = "Registering...";
+
+    try {
+      const fullName = document.getElementById("registerName").value.trim();
+      const email = document.getElementById("registerEmail").value.trim();
+      const password = document.getElementById("registerPassword").value;
+
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        await client.auth.signOut();
+      }
+
+      message.textContent =
+        "Registration submitted. Your account is awaiting Admin approval. Please verify your email if requested.";
+
+      registerForm.reset();
+
+    } catch (error) {
+      message.textContent = error.message || "Registration failed.";
+    } finally {
+      registerButton.disabled = false;
+      registerButton.textContent = "Register as Student";
+    }
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -678,7 +763,7 @@ td {
 
       const { data: profile, error: profileError } = await client
         .from("profiles")
-        .select("full_name, role")
+        .select("full_name, role, account_status")
         .eq("id", data.user.id)
         .maybeSingle();
 
@@ -689,7 +774,19 @@ td {
         await client.auth.signOut();
         throw new Error("No valid MYLN profile or role was found.");
       }
+if (profile.account_status !== "approved") {
+  await client.auth.signOut();
 
+  if (profile.account_status === "pending") {
+    throw new Error(
+      "Your account is waiting for MYLN Admin approval."
+    );
+  }
+
+  throw new Error(
+    "Your account is not approved. Please contact MYLN Admin."
+  );
+}
       const card = document.querySelector(".card");
 
 
