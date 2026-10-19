@@ -1102,10 +1102,58 @@ if (!attendance || attendance.length === 0) {
 
             const resultMessage = document.createElement("p");
 
-            approveButton.addEventListener("click", async () => {
-              resultMessage.textContent =
-                "Approval requires creating the student record first.";
-            });
+           approveButton.addEventListener("click", async () => {
+  approveButton.disabled = true;
+  resultMessage.textContent = "Approving student...";
+
+  try {
+    // Check whether the student record already exists
+    const { data: existingStudent, error: checkError } = await client
+      .from("students")
+      .select("id")
+      .eq("profile_id", pendingStudent.id)
+      .maybeSingle();
+
+    if (checkError) throw checkError;
+
+    // Create student record if it does not exist
+    if (!existingStudent) {
+      const { error: insertError } = await client
+        .from("students")
+        .insert({
+          profile_id: pendingStudent.id,
+          full_name: pendingStudent.full_name,
+          status: "active"
+        });
+
+      if (insertError) throw insertError;
+    }
+
+    // Approve the profile
+    const { data: approvedProfile, error: approveError } = await client
+      .from("profiles")
+      .update({ account_status: "approved" })
+      .eq("id", pendingStudent.id)
+      .eq("account_status", "pending")
+      .select("id")
+      .maybeSingle();
+
+    if (approveError) throw approveError;
+
+    if (!approvedProfile) {
+      throw new Error(
+        "Student record is ready, but profile approval was not confirmed. Refresh and check the account status."
+      );
+    }
+
+    resultMessage.textContent =
+      "Student approved successfully! Refresh the dashboard to update the list.";
+  } catch (error) {
+    resultMessage.textContent = "Approval failed: " + error.message;
+  } finally {
+    approveButton.disabled = false;
+  }
+});
 
             rejectButton.addEventListener("click", async () => {
               resultMessage.textContent =
