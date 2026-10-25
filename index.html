@@ -712,6 +712,9 @@ td {
     }
   }
 </style>
+<script src="assets/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 
 </head>
 
@@ -819,6 +822,26 @@ td {
 
     <div id="message" role="status" aria-live="polite"></div>
     <p class="hint">Authorized MYLN users only.</p>
+    
+    <hr>
+
+    <section id="publicCertificateVerification">
+      <h2>Certificate Verification</h2>
+      <p>Enter a MYLN certificate number to verify its authenticity.</p>
+
+      <form id="verifyCertificateForm">
+        <label for="certificateNumber">Certificate Number</label>
+        <input
+          id="certificateNumber"
+          type="text"
+          placeholder="e.g. MYLN-2026-96C6650F"
+          required
+        >
+        <button type="submit">Verify Certificate</button>
+      </form>
+
+      <div id="verificationResult" aria-live="polite"></div>
+    </section>
   </main>
 
   
@@ -879,6 +902,51 @@ td {
     }
   });
 
+const mentorApplicationForm = document.getElementById("mentorApplicationForm");
+const mentorApplicationButton = document.getElementById("mentorApplicationButton");
+const mentorApplicationMessage = document.getElementById("mentorApplicationMessage");
+
+mentorApplicationForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  mentorApplicationButton.disabled = true;
+  mentorApplicationButton.textContent = "Submitting...";
+  mentorApplicationMessage.textContent = "";
+
+  try {
+    const fullName = document.getElementById("mentorAppName").value.trim();
+    const email = document.getElementById("mentorAppEmail").value.trim();
+    const phone = document.getElementById("mentorAppPhone").value.trim();
+    const skills = document.getElementById("mentorAppSkills").value.trim();
+
+    const { error } = await client
+      .from("mentors")
+      .insert({
+        full_name: fullName,
+        email: email,
+        phone: phone,
+        skills: skills,
+        status: "pending",
+        profile_id: null
+      });
+
+    if (error) throw error;
+
+    mentorApplicationMessage.textContent =
+      "Application submitted successfully! Please wait for Admin approval.";
+
+    mentorApplicationForm.reset();
+
+  } catch (error) {
+    console.error("Mentor application error:", error);
+    mentorApplicationMessage.textContent =
+      error.message || "Application failed. Please try again.";
+  } finally {
+    mentorApplicationButton.disabled = false;
+    mentorApplicationButton.textContent = "Submit Mentor Application";
+  }
+});
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -896,34 +964,59 @@ td {
       });
 
       if (error) throw error;
+      console.log("Login session exists:", !!data.session);
+console.log("Login user ID exists:", !!data.user?.id);
 
-      const { data: profile, error: profileError } = await client
+const { data: profileResult, error: profileError } = await client
+  .from("profiles")
+  .select("full_name, role, account_status")
+  .eq("id", data.user.id)
+  .maybeSingle();
+
+if (profileError) throw profileError;
+
+let profile = profileResult;
+
+if (
+  !profile ||
+  !["admin", "mentor", "student"].includes(profile.role)
+) {
+  await client.auth.signOut();
+  throw new Error("No valid MYLN profile or role was found.");
+}
+
+// Try linking an account that is not yet approved.
+// Ordinary students without an approved mentor application
+// will remain pending.
+if (
+  profile.account_status !== "approved" &&
+  ["student", "mentor"].includes(profile.role)
+) {
+  const { data: linkData, error: linkError } =
+    await client.functions.invoke("link-mentor-account");
+
+  if (!linkError && linkData?.success) {
+    const { data: refreshedProfile, error: refreshError } =
+      await client
         .from("profiles")
         .select("full_name, role, account_status")
         .eq("id", data.user.id)
         .maybeSingle();
 
-      if (profileError) throw profileError;
+    if (refreshError) throw refreshError;
 
-      if (!profile ||
-          !["admin", "mentor", "student"].includes(profile.role)) {
-        await client.auth.signOut();
-        throw new Error("No valid MYLN profile or role was found.");
-      }
-if (profile.account_status !== "approved") {
-  await client.auth.signOut();
-
-  if (profile.account_status === "pending") {
-    throw new Error(
-      "Your account is waiting for MYLN Admin approval."
-    );
+    profile = refreshedProfile;
   }
+}
 
+// Only approved accounts may enter a dashboard.
+if (!profile || profile.account_status !== "approved") {
+  await client.auth.signOut();
   throw new Error(
-    "Your account is not approved. Please contact MYLN Admin."
+    "Your account is awaiting Admin approval. Please try again after approval."
   );
 }
-console.log("LOGIN SCRIPT RUNNING", Date.now());
+
       const card = document.querySelector(".card");
 
 
@@ -1111,6 +1204,172 @@ profileDetails.forEach(function ([label, value]) {
 
 section.appendChild(profileGrid);
 
+        // My Certificates
+        const myCertificatesSection = addSection("My Certificates");
+
+        const myCertificatesMessage = addText(
+          "p",
+          "Loading your certificates...",
+          myCertificatesSection
+        );
+
+        const myCertificatesContainer = document.createElement("div");
+        myCertificatesSection.appendChild(myCertificatesContainer);
+
+        const { data: myCertificates, error: myCertificatesError } =
+          await client
+            .from("certificates")
+            .select("certificate_number, course_name, issue_date, remarks")
+            .eq("student_id", student.id)
+            .order("issue_date", { ascending: false });
+
+        if (myCertificatesError) {
+          myCertificatesMessage.textContent =
+            "Could not load certificates: " + myCertificatesError.message;
+        } else if (!myCertificates || myCertificates.length === 0) {
+          myCertificatesMessage.textContent =
+            "No certificates have been issued to you yet.";
+        } else {
+          myCertificatesMessage.textContent =
+            `You have ${myCertificates.length} certificate(s).`;
+
+          myCertificates.forEach((certificate) => {
+            const item = document.createElement("div");
+            item.style.border = "1px solid #ddd";
+            item.style.padding = "12px";
+            item.style.marginBottom = "10px";
+            item.style.borderRadius = "8px";
+
+            const title = document.createElement("h3");
+            title.textContent = certificate.course_name;
+
+            const number = document.createElement("p");
+            number.textContent =
+              "Certificate No: " + certificate.certificate_number;
+
+            const date = document.createElement("p");
+            date.textContent = "Issue Date: " + certificate.issue_date;
+
+            item.append(title, number, date);
+
+            if (certificate.remarks) {
+              const remarks = document.createElement("p");
+              remarks.textContent = "Remarks: " + certificate.remarks;
+              item.appendChild(remarks);
+            }
+
+            const downloadButton = document.createElement("button");
+            downloadButton.type = "button";
+            downloadButton.textContent = "Download Certificate PDF";
+
+            downloadButton.addEventListener("click", async function () {
+              try {
+                downloadButton.disabled = true;
+                downloadButton.textContent = "Preparing PDF...";
+
+                await generateCertificatePDF(certificate, student.full_name);
+              } catch (error) {
+                console.error("PDF generation error:", error);
+                alert("Could not generate the certificate PDF. Please check the logo file and browser console.");
+              } finally {
+                downloadButton.disabled = false;
+                downloadButton.textContent = "Download Certificate PDF";
+              }
+            });
+
+            item.appendChild(downloadButton);
+
+            myCertificatesContainer.appendChild(item);
+          });
+        }
+
+        // My Exam Results
+        const examResultsSection = addSection("My Exam Results");
+        addText("p", "Loading exam results...", examResultsSection);
+
+        const { data: myResults, error: myResultsError } = await client
+          .from("exam_results")
+          .select(`
+            marks_obtained,
+            remarks,
+            exams (
+              title,
+              subject,
+              exam_date,
+              total_marks
+            )
+          `)
+          .eq("student_id", student.id);
+
+        if (myResultsError) throw myResultsError;
+
+        examResultsSection.innerHTML = "";
+        addText("h2", "My Exam Results", examResultsSection);
+
+        if (!myResults || myResults.length === 0) {
+          addText("p", "No exam results available yet.", examResultsSection);
+        } else {
+          const resultsTable = document.createElement("table");
+          resultsTable.style.width = "100%";
+          resultsTable.style.borderCollapse = "collapse";
+
+          const headerRow = document.createElement("tr");
+
+          ["Exam", "Subject", "Date", "Marks", "Percentage", "Remarks"]
+            .forEach((heading) => {
+              const th = document.createElement("th");
+              th.textContent = heading;
+              th.style.padding = "10px";
+              th.style.border = "1px solid #ddd";
+              headerRow.appendChild(th);
+            });
+
+          const thead = document.createElement("thead");
+          thead.appendChild(headerRow);
+          resultsTable.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+
+          myResults.forEach((result) => {
+            const exam = result.exams;
+
+            if (!exam) return;
+
+            const percentage = Number(exam.total_marks) > 0
+              ? Math.round(
+                  (Number(result.marks_obtained) /
+                    Number(exam.total_marks)) * 100
+                )
+              : 0;
+
+            const row = document.createElement("tr");
+
+            [
+              exam.title || "—",
+              exam.subject || "—",
+              exam.exam_date || "—",
+              result.marks_obtained + " / " + exam.total_marks,
+              percentage + "%",
+              result.remarks || "—"
+            ].forEach((value) => {
+              const td = document.createElement("td");
+              td.textContent = String(value);
+              td.style.padding = "10px";
+              td.style.border = "1px solid #ddd";
+              row.appendChild(td);
+            });
+
+            tbody.appendChild(row);
+          });
+
+          resultsTable.appendChild(tbody);
+
+          const resultsWrapper = document.createElement("div");
+          resultsWrapper.style.overflowX = "auto";
+          resultsWrapper.appendChild(resultsTable);
+          examResultsSection.appendChild(resultsWrapper);
+        }
+
         const attendanceSection = addSection("My Recent Attendance");
         addText("p", "Loading attendance...", attendanceSection);
 
@@ -1247,6 +1506,452 @@ if (!attendance || attendance.length === 0) {
         addText("p", "Total Profiles: " + results[2].count, summary);
         addText("p", "Attendance Records: " + results[3].count, summary);
 
+        // Exam Management
+        const examSection = addSection("Exam Management");
+        addText("h2", "Create New Exam", examSection);
+
+        const examForm = document.createElement("form");
+        examForm.style.display = "grid";
+        examForm.style.gap = "10px";
+        examForm.style.maxWidth = "400px";
+
+        const examTitle = document.createElement("input");
+        examTitle.type = "text";
+        examTitle.placeholder = "Exam Title (e.g. Monthly Test)";
+        examTitle.required = true;
+
+        const examSubject = document.createElement("input");
+        examSubject.type = "text";
+        examSubject.placeholder = "Subject (e.g. English)";
+        examSubject.required = true;
+
+        const examDate = document.createElement("input");
+        examDate.type = "date";
+
+        const totalMarks = document.createElement("input");
+        totalMarks.type = "number";
+        totalMarks.placeholder = "Total Marks";
+        totalMarks.min = "1";
+        totalMarks.required = true;
+
+        const createExamButton = document.createElement("button");
+        createExamButton.type = "submit";
+        createExamButton.textContent = "Create Exam";
+
+        const examMessage = document.createElement("p");
+
+        examForm.append(
+          examTitle,
+          examSubject,
+          examDate,
+          totalMarks,
+          createExamButton,
+          examMessage
+        );
+
+        examForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          createExamButton.disabled = true;
+          examMessage.textContent = "Creating exam...";
+
+          try {
+            const { error } = await client
+              .from("exams")
+              .insert({
+                title: examTitle.value.trim(),
+                subject: examSubject.value.trim(),
+                exam_date: examDate.value || null,
+                total_marks: Number(totalMarks.value),
+                created_by: data.user.id
+              });
+
+            if (error) throw error;
+
+            examMessage.textContent = "Exam created successfully!";
+            examForm.reset();
+            await loadExamList();
+          } catch (error) {
+            examMessage.textContent =
+              "Failed to create exam: " + error.message;
+          } finally {
+            createExamButton.disabled = false;
+          }
+        });
+
+        examSection.appendChild(examForm);
+ 
+        // Existing Exam List
+        const examListSection = addSection("Exam List");
+        addText("p", "Loading exams...", examListSection);
+
+
+        async function loadExamList() {
+          examListSection.innerHTML = "";
+          addText("h2", "All Exams", examListSection);
+          addText("p", "Loading exams...", examListSection);
+
+          const { data: examList, error: examListError } = await client
+            .from("exams")
+            .select("id, title, subject, exam_date, total_marks, created_at")
+            .order("created_at", { ascending: false });
+
+          if (examListError) {
+            examListSection.innerHTML = "";
+            addText("h2", "All Exams", examListSection);
+            addText("p", "Could not load exams: " + examListError.message, examListSection);
+            return;
+          }
+
+          examListSection.innerHTML = "";
+          addText("h2", "All Exams", examListSection);
+
+          if (!examList || examList.length === 0) {
+            addText("p", "No exams have been created yet.", examListSection);
+            return;
+          }
+
+          const tableWrapper = document.createElement("div");
+          tableWrapper.style.overflowX = "auto";
+
+          const table = document.createElement("table");
+          table.style.width = "100%";
+          table.style.borderCollapse = "collapse";
+
+          const thead = document.createElement("thead");
+          const headerRow = document.createElement("tr");
+
+          ["Exam Title", "Subject", "Exam Date", "Total Marks"].forEach((heading) => {
+            const th = document.createElement("th");
+            th.textContent = heading;
+            th.style.padding = "10px";
+            th.style.border = "1px solid #ddd";
+            th.style.textAlign = "left";
+            headerRow.appendChild(th);
+          });
+
+          thead.appendChild(headerRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+
+          examList.forEach((exam) => {
+            const row = document.createElement("tr");
+
+            [
+              exam.title,
+              exam.subject,
+              exam.exam_date || "Not set",
+              String(exam.total_marks)
+            ].forEach((value) => {
+              const td = document.createElement("td");
+              td.textContent = value || "—";
+              td.style.padding = "10px";
+              td.style.border = "1px solid #ddd";
+              row.appendChild(td);
+            });
+
+            tbody.appendChild(row);
+          });
+
+          table.appendChild(tbody);
+          tableWrapper.appendChild(table);
+          examListSection.appendChild(tableWrapper);
+        }
+
+        await loadExamList();
+
+        // Add Exam Results
+        const examResultsSection = addSection("Add Exam Results");
+        addText("h2", "Enter Student Marks", examResultsSection);
+
+        const examResultsForm = document.createElement("form");
+        examResultsForm.style.display = "grid";
+        examResultsForm.style.gap = "10px";
+        examResultsForm.style.maxWidth = "400px";
+
+        const resultExamSelect = document.createElement("select");
+        resultExamSelect.required = true;
+
+        const resultExamPlaceholder = document.createElement("option");
+        resultExamPlaceholder.value = "";
+        resultExamPlaceholder.textContent = "Select Exam";
+        resultExamSelect.appendChild(resultExamPlaceholder);
+
+        const { data: availableExams, error: availableExamsError } =
+          await client
+            .from("exams")
+            .select("id, title, subject, total_marks")
+            .order("created_at", { ascending: false });
+
+        if (availableExamsError) throw availableExamsError;
+
+        (availableExams || []).forEach((exam) => {
+          const option = document.createElement("option");
+          option.value = exam.id;
+          option.textContent =
+            exam.title + " - " + exam.subject +
+            " (Total: " + exam.total_marks + ")";
+          resultExamSelect.appendChild(option);
+        });
+
+        const resultStudentSelect = document.createElement("select");
+        resultStudentSelect.required = true;
+
+        const resultStudentPlaceholder = document.createElement("option");
+        resultStudentPlaceholder.value = "";
+        resultStudentPlaceholder.textContent = "Select Student";
+        resultStudentSelect.appendChild(resultStudentPlaceholder);
+
+        const { data: resultStudents, error: resultStudentsError } =
+          await client
+            .from("students")
+            .select("id, full_name, class_level")
+            .order("full_name", { ascending: true });
+
+        if (resultStudentsError) throw resultStudentsError;
+
+        (resultStudents || []).forEach((student) => {
+          const option = document.createElement("option");
+          option.value = student.id;
+          option.textContent =
+            student.full_name + " - " + (student.class_level || "Class not set");
+          resultStudentSelect.appendChild(option);
+        });
+
+        const marksInput = document.createElement("input");
+        marksInput.type = "number";
+        marksInput.placeholder = "Marks Obtained";
+        marksInput.min = "0";
+        marksInput.step = "any";
+        marksInput.required = true;
+
+        const remarksInput = document.createElement("input");
+        remarksInput.type = "text";
+        remarksInput.placeholder = "Remarks (optional)";
+
+        const saveResultButton = document.createElement("button");
+        saveResultButton.type = "submit";
+        saveResultButton.textContent = "Save Result";
+
+        const resultMessage = document.createElement("p");
+
+        examResultsForm.append(
+          resultExamSelect,
+          resultStudentSelect,
+          marksInput,
+          remarksInput,
+          saveResultButton,
+          resultMessage
+        );
+
+        examResultsForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          saveResultButton.disabled = true;
+
+          try {
+            const selectedExam = (availableExams || []).find(
+              (exam) => exam.id === resultExamSelect.value
+            );
+
+            if (!selectedExam) {
+              throw new Error("Please select an exam.");
+            }
+
+            const marks = Number(marksInput.value);
+
+            if (
+              !Number.isFinite(marks) ||
+              marks < 0 ||
+              marks > Number(selectedExam.total_marks)
+            ) {
+              throw new Error(
+                "Marks must be between 0 and " + selectedExam.total_marks + "."
+              );
+            }
+
+            resultMessage.textContent = "Saving result...";
+
+            const { error } = await client
+              .from("exam_results")
+              .insert({
+                exam_id: selectedExam.id,
+                student_id: resultStudentSelect.value,
+                marks_obtained: marks,
+                remarks: remarksInput.value.trim() || null
+              });
+
+            if (error) throw error;
+
+            resultMessage.textContent = "Result saved successfully!";
+            examResultsForm.reset();
+          } catch (error) {
+            resultMessage.textContent =
+              error.code === "23505"
+                ? "This student's result for this exam already exists."
+                : "Failed to save result: " + error.message;
+          } finally {
+            saveResultButton.disabled = false;
+          }
+        });
+
+        examResultsSection.appendChild(examResultsForm);
+
+        // Edit Existing Exam Results
+        const editResultsSection = addSection("Edit Exam Results");
+        addText("h2", "Update Student Marks", editResultsSection);
+        addText("p", "Loading existing results...", editResultsSection);
+
+        const { data: existingResults, error: existingResultsError } =
+          await client
+            .from("exam_results")
+            .select(`
+              id,
+              exam_id,
+              student_id,
+              marks_obtained,
+              remarks,
+              exams(title, subject, total_marks),
+              students(full_name)
+            `)
+            .order("created_at", { ascending: false });
+
+        if (existingResultsError) throw existingResultsError;
+
+        editResultsSection.innerHTML = "";
+        addText("h2", "Update Student Marks", editResultsSection);
+
+        if (!existingResults || existingResults.length === 0) {
+          addText("p", "No results available to edit.", editResultsSection);
+        } else {
+          const editForm = document.createElement("form");
+          editForm.style.display = "grid";
+          editForm.style.gap = "10px";
+          editForm.style.maxWidth = "400px";
+
+          const editResultSelect = document.createElement("select");
+          editResultSelect.required = true;
+
+          const editPlaceholder = document.createElement("option");
+          editPlaceholder.value = "";
+          editPlaceholder.textContent = "Select a result to edit";
+          editResultSelect.appendChild(editPlaceholder);
+
+          existingResults.forEach((result) => {
+            const option = document.createElement("option");
+            option.value = result.id;
+            option.textContent =
+              (result.students?.full_name || "Unknown Student") +
+              " — " +
+              (result.exams?.title || "Unknown Exam") +
+              " (" + result.marks_obtained + "/" +
+              (result.exams?.total_marks ?? "?") + ")";
+            editResultSelect.appendChild(option);
+          });
+
+          const editMarksInput = document.createElement("input");
+          editMarksInput.type = "number";
+          editMarksInput.min = "0";
+          editMarksInput.step = "any";
+          editMarksInput.placeholder = "Updated marks";
+          editMarksInput.required = true;
+
+          const editRemarksInput = document.createElement("input");
+          editRemarksInput.type = "text";
+          editRemarksInput.placeholder = "Updated remarks (optional)";
+
+          const updateResultButton = document.createElement("button");
+          updateResultButton.type = "submit";
+          updateResultButton.textContent = "Update Result";
+
+          const editMessage = document.createElement("p");
+
+          editForm.append(
+            editResultSelect,
+            editMarksInput,
+            editRemarksInput,
+            updateResultButton,
+            editMessage
+          );
+
+          editResultSelect.addEventListener("change", () => {
+            const selectedResult = existingResults.find(
+              (result) => result.id === editResultSelect.value
+            );
+
+            if (!selectedResult) {
+              editMarksInput.value = "";
+              editRemarksInput.value = "";
+              return;
+            }
+
+            editMarksInput.value = selectedResult.marks_obtained;
+            editRemarksInput.value = selectedResult.remarks || "";
+          });
+
+          editForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const selectedResult = existingResults.find(
+              (result) => result.id === editResultSelect.value
+            );
+
+            if (!selectedResult) {
+              editMessage.textContent = "Please select a result.";
+              return;
+            }
+
+            const marks = Number(editMarksInput.value);
+            const maxMarks = Number(selectedResult.exams?.total_marks);
+
+            if (
+              !Number.isFinite(marks) ||
+              marks < 0 ||
+              !Number.isFinite(maxMarks) ||
+              marks > maxMarks
+            ) {
+              editMessage.textContent =
+                "Marks must be between 0 and " + maxMarks + ".";
+              return;
+            }
+
+            updateResultButton.disabled = true;
+            editMessage.textContent = "Updating result...";
+
+            try {
+              const { error } = await client
+                .from("exam_results")
+                .update({
+                  marks_obtained: marks,
+                  remarks: editRemarksInput.value.trim() || null
+                })
+                .eq("id", selectedResult.id);
+
+              if (error) throw error;
+
+              editMessage.textContent = "Result updated successfully!";
+              selectedResult.marks_obtained = marks;
+              selectedResult.remarks =
+                editRemarksInput.value.trim() || null;
+
+              const selectedOption = editResultSelect.options[
+                editResultSelect.selectedIndex
+              ];
+              selectedOption.textContent =
+                (selectedResult.students?.full_name || "Unknown Student") +
+                " — " +
+                (selectedResult.exams?.title || "Unknown Exam") +
+                " (" + marks + "/" + maxMarks + ")";
+            } catch (error) {
+              editMessage.textContent =
+                "Update failed: " + error.message;
+            } finally {
+              updateResultButton.disabled = false;
+            }
+          });
+
+          editResultsSection.appendChild(editForm);
+        }
+
         // Pending Student Approval
         const pendingSection = addSection("Pending Student Approval");
         addText("p", "Loading pending registrations...", pendingSection);
@@ -1381,6 +2086,125 @@ if (!attendance || attendance.length === 0) {
           });
         }
 
+// Pending Mentor Applications
+const pendingMentorsSection = addSection("Pending Mentor Applications");
+addText("p", "Loading pending mentor applications...", pendingMentorsSection);
+
+const { data: pendingMentors, error: pendingMentorsError } = await client
+  .from("mentors")
+  .select("id, full_name, email, phone, skills, status, created_at")
+  .eq("status", "pending")
+  .order("created_at", { ascending: false });
+
+if (pendingMentorsError) throw pendingMentorsError;
+
+pendingMentorsSection.innerHTML = "";
+addText("h2", "Pending Mentor Applications", pendingMentorsSection);
+
+if (!pendingMentors || pendingMentors.length === 0) {
+  addText("p", "No pending mentor applications.", pendingMentorsSection);
+} else {
+  pendingMentors.forEach((mentor) => {
+    const item = document.createElement("div");
+    item.style.marginBottom = "16px";
+    item.style.padding = "12px";
+    item.style.border = "1px solid #ddd";
+    item.style.borderRadius = "8px";
+
+    addText("strong", mentor.full_name || "Unnamed Mentor", item);
+    addText("p", "Email: " + (mentor.email || "Not provided"), item);
+    addText("p", "Phone: " + (mentor.phone || "Not provided"), item);
+    addText("p", "Skills: " + (mentor.skills || "Not provided"), item);
+    addText("p", "Status: " + mentor.status, item);
+    
+const approveMentorButton = document.createElement("button");
+approveMentorButton.type = "button";
+approveMentorButton.textContent = "Approve Mentor";
+
+const rejectMentorButton = document.createElement("button");
+rejectMentorButton.type = "button";
+rejectMentorButton.textContent = "Reject Mentor";
+rejectMentorButton.style.marginLeft = "8px";
+
+const mentorResultMessage = document.createElement("p");
+
+approveMentorButton.addEventListener("click", async () => {
+  const confirmed = confirm(
+    `Approve ${mentor.full_name} and send an invitation?`
+  );
+
+  if (!confirmed) return;
+
+  approveMentorButton.disabled = true;
+  mentorResultMessage.textContent = "Processing approval...";
+
+  try {
+    const { data, error } = await client.functions.invoke(
+      "approve-mentor",
+      {
+        body: {
+          mentorId: mentor.id,
+          action: "approve"
+        }
+      }
+    );
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    mentorResultMessage.textContent =
+      data?.message || "Approval request completed.";
+  } catch (error) {
+    mentorResultMessage.textContent =
+      "Approval failed: " + error.message;
+  } finally {
+    approveMentorButton.disabled = false;
+  }
+});
+
+rejectMentorButton.addEventListener("click", async () => {
+  const confirmed = confirm(
+    `Reject ${mentor.full_name}'s application?`
+  );
+
+  if (!confirmed) return;
+
+  rejectMentorButton.disabled = true;
+  mentorResultMessage.textContent = "Processing rejection...";
+
+  try {
+    const { data, error } = await client.functions.invoke(
+      "approve-mentor",
+      {
+        body: {
+          mentorId: mentor.id,
+          action: "reject"
+        }
+      }
+    );
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    mentorResultMessage.textContent =
+      data?.message || "Rejection request completed.";
+  } catch (error) {
+    mentorResultMessage.textContent =
+      "Rejection failed: " + error.message;
+  } finally {
+    rejectMentorButton.disabled = false;
+  }
+});
+
+item.append(
+  approveMentorButton,
+  rejectMentorButton,
+  mentorResultMessage
+);
+
+    pendingMentorsSection.appendChild(item);
+  });
+}
 
 const studentsSection = addSection("Student Management");
 addText("p", "Loading students...", studentsSection);
@@ -2200,10 +3024,10 @@ row.style.display =
         const assignmentStudentSelect = document.createElement("select");
         assignmentStudentSelect.required = true;
 
-        const studentPlaceholder = document.createElement("option");
-        studentPlaceholder.value = "";
-        studentPlaceholder.textContent = "Select Student";
-        assignmentStudentSelect.appendChild(studentPlaceholder);
+        const assignmentStudentPlaceholder = document.createElement("option");
+        assignmentStudentPlaceholder.value = "";
+        assignmentStudentPlaceholder.textContent = "Select Student";
+        assignmentStudentSelect.appendChild(assignmentStudentPlaceholder);
 
         const { data: assignmentStudents, error: assignmentStudentsError } =
           await client
@@ -2264,6 +3088,560 @@ row.style.display =
         });
 
         mentorsSection.appendChild(assignmentForm);
+
+        // Delete Exam Result
+        const deleteResultSection = addSection("Delete Exam Result");
+        addText("h2", "Remove an Exam Result", deleteResultSection);
+
+        const deleteResultForm = document.createElement("form");
+        deleteResultForm.style.display = "grid";
+        deleteResultForm.style.gap = "10px";
+        deleteResultForm.style.maxWidth = "400px";
+
+        const deleteResultSelect = document.createElement("select");
+        deleteResultSelect.required = true;
+
+        const deletePlaceholder = document.createElement("option");
+        deletePlaceholder.value = "";
+        deletePlaceholder.textContent = "Select a result to delete";
+        deleteResultSelect.appendChild(deletePlaceholder);
+
+        const { data: resultsToDelete, error: resultsToDeleteError } =
+          await client
+            .from("exam_results")
+            .select(`
+              id,
+              marks_obtained,
+              exams(title, total_marks),
+              students(full_name)
+            `)
+            .order("created_at", { ascending: false });
+
+        if (resultsToDeleteError) throw resultsToDeleteError;
+
+        (resultsToDelete || []).forEach((result) => {
+          const option = document.createElement("option");
+          option.value = result.id;
+          option.textContent =
+            (result.students?.full_name || "Unknown Student") +
+            " — " +
+            (result.exams?.title || "Unknown Exam") +
+            " (" + result.marks_obtained + "/" +
+            (result.exams?.total_marks ?? "?") + ")";
+          deleteResultSelect.appendChild(option);
+        });
+
+        const deleteResultButton = document.createElement("button");
+        deleteResultButton.type = "submit";
+        deleteResultButton.textContent = "Delete Result";
+        deleteResultButton.style.backgroundColor = "#b91c1c";
+        deleteResultButton.style.color = "#fff";
+
+        const deleteResultMessage = document.createElement("p");
+
+        deleteResultForm.append(
+          deleteResultSelect,
+          deleteResultButton,
+          deleteResultMessage
+        );
+
+        deleteResultForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const selectedId = deleteResultSelect.value;
+          if (!selectedId) {
+            deleteResultMessage.textContent = "Please select a result.";
+            return;
+          }
+
+          const selectedResult = (resultsToDelete || []).find(
+            (result) => result.id === selectedId
+          );
+
+          const confirmed = window.confirm(
+            "Delete this result for " +
+            (selectedResult?.students?.full_name || "this student") +
+            "? This action cannot be undone."
+          );
+
+          if (!confirmed) return;
+
+          deleteResultButton.disabled = true;
+          deleteResultMessage.textContent = "Deleting result...";
+
+          try {
+            const { error } = await client
+              .from("exam_results")
+              .delete()
+              .eq("id", selectedId);
+
+            if (error) throw error;
+
+            deleteResultMessage.textContent =
+              "Result deleted successfully! Refresh the dashboard to update the list.";
+
+            const optionToRemove = deleteResultSelect.querySelector(
+              'option[value="' + selectedId + '"]'
+            );
+            if (optionToRemove) optionToRemove.remove();
+
+            deleteResultSelect.value = "";
+          } catch (error) {
+            deleteResultMessage.textContent =
+              "Delete failed: " + error.message;
+          } finally {
+            deleteResultButton.disabled = false;
+          }
+        });
+
+        deleteResultSection.appendChild(deleteResultForm);
+
+       
+        // Edit Exam
+        const editExamSection = addSection("Edit Exam");
+        addText("p", "Select an exam and update its details.", editExamSection);
+
+        const editExamSelect = document.createElement("select");
+        editExamSelect.required = true;
+        editExamSelect.style.display = "block";
+        editExamSelect.style.padding = "8px";
+        editExamSelect.style.marginBottom = "10px";
+
+        const editExamPlaceholder = document.createElement("option");
+        editExamPlaceholder.value = "";
+        editExamPlaceholder.textContent = "Select an exam";
+        editExamSelect.appendChild(editExamPlaceholder);
+
+        const editExamForm = document.createElement("form");
+
+        const editExamTitle = document.createElement("input");
+        editExamTitle.type = "text";
+        editExamTitle.placeholder = "Exam title";
+        editExamTitle.required = true;
+
+        const editExamSubject = document.createElement("input");
+        editExamSubject.type = "text";
+        editExamSubject.placeholder = "Subject";
+        editExamSubject.required = true;
+
+        const editExamDate = document.createElement("input");
+        editExamDate.type = "date";
+
+        const editExamTotal = document.createElement("input");
+        editExamTotal.type = "number";
+        editExamTotal.placeholder = "Total marks";
+        editExamTotal.min = "0.01";
+        editExamTotal.step = "any";
+        editExamTotal.required = true;
+
+        const editExamButton = document.createElement("button");
+        editExamButton.type = "submit";
+        editExamButton.textContent = "Save Changes";
+
+        const editExamMessage = document.createElement("p");
+
+        [editExamTitle, editExamSubject, editExamDate, editExamTotal].forEach(
+          (input) => {
+            input.style.display = "block";
+            input.style.padding = "8px";
+            input.style.marginBottom = "10px";
+            input.style.maxWidth = "100%";
+            editExamForm.appendChild(input);
+          }
+        );
+
+        editExamForm.appendChild(editExamButton);
+        editExamForm.appendChild(editExamMessage);
+        editExamSection.appendChild(editExamSelect);
+        editExamSection.appendChild(editExamForm);
+
+        let editableExams = [];
+
+        const { data: editExamData, error: editExamLoadError } = await client
+          .from("exams")
+          .select("id, title, subject, exam_date, total_marks")
+          .order("created_at", { ascending: false });
+
+        if (editExamLoadError) throw editExamLoadError;
+
+        editableExams = editExamData || [];
+
+        editableExams.forEach((exam) => {
+          const option = document.createElement("option");
+          option.value = exam.id;
+          option.textContent = `${exam.title} — ${exam.subject}`;
+          editExamSelect.appendChild(option);
+        });
+
+        editExamSelect.addEventListener("change", () => {
+          const exam = editableExams.find(
+            (item) => item.id === editExamSelect.value
+          );
+
+          editExamTitle.value = exam?.title || "";
+          editExamSubject.value = exam?.subject || "";
+          editExamDate.value = exam?.exam_date || "";
+          editExamTotal.value = exam?.total_marks ?? "";
+          editExamMessage.textContent = "";
+        });
+
+        editExamForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const examId = editExamSelect.value;
+
+          if (!examId) {
+            editExamMessage.textContent = "Please select an exam.";
+            return;
+          }
+
+          const totalMarks = Number(editExamTotal.value);
+
+          if (!Number.isFinite(totalMarks) || totalMarks <= 0) {
+            editExamMessage.textContent = "Total marks must be greater than zero.";
+            return;
+          }
+
+          editExamButton.disabled = true;
+          editExamMessage.textContent = "Saving changes...";
+
+          const { error: editExamError } = await client
+            .from("exams")
+            .update({
+              title: editExamTitle.value.trim(),
+              subject: editExamSubject.value.trim(),
+              exam_date: editExamDate.value || null,
+              total_marks: totalMarks
+            })
+            .eq("id", examId);
+
+          editExamButton.disabled = false;
+
+          if (editExamError) {
+            editExamMessage.textContent =
+              "Update failed: " + editExamError.message;
+            return;
+          }
+
+          editExamMessage.textContent = "Exam updated successfully!";
+
+          await loadExamList();
+
+          const updatedExam = editableExams.find(
+            (item) => item.id === examId
+          );
+
+          if (updatedExam) {
+            updatedExam.title = editExamTitle.value.trim();
+            updatedExam.subject = editExamSubject.value.trim();
+            updatedExam.exam_date = editExamDate.value || null;
+            updatedExam.total_marks = totalMarks;
+          }
+
+          const selectedOption = Array.from(editExamSelect.options).find(
+            (option) => option.value === examId
+          );
+
+          if (selectedOption) {
+            selectedOption.textContent =
+              `${editExamTitle.value.trim()} — ${editExamSubject.value.trim()}`;
+          }
+        });
+
+        // Certificate Management - Issue Certificate
+        const certificateSection = addSection("Certificate Management");
+        addText("p", "Issue a certificate to a student.", certificateSection);
+
+        const certificateForm = document.createElement("form");
+
+        const certificateStudent = document.createElement("select");
+        certificateStudent.required = true;
+        certificateStudent.style.display = "block";
+        certificateStudent.style.padding = "8px";
+        certificateStudent.style.marginBottom = "10px";
+
+const certificateStudentPlaceholder = document.createElement("option");
+certificateStudentPlaceholder.value = "";
+certificateStudentPlaceholder.textContent = "Select a student";
+certificateStudent.appendChild(certificateStudentPlaceholder);
+
+        const certificateCourse = document.createElement("input");
+        certificateCourse.type = "text";
+        certificateCourse.placeholder = "Course name";
+        certificateCourse.required = true;
+
+        const certificateDate = document.createElement("input");
+        certificateDate.type = "date";
+        certificateDate.value = new Date().toISOString().slice(0, 10);
+        certificateDate.required = true;
+
+        const certificateRemarks = document.createElement("textarea");
+        certificateRemarks.placeholder = "Remarks (optional)";
+        certificateRemarks.rows = 2;
+
+        const issueCertificateButton = document.createElement("button");
+        issueCertificateButton.type = "submit";
+        issueCertificateButton.textContent = "Issue Certificate";
+
+        const certificateMessage = document.createElement("p");
+
+        [certificateCourse, certificateDate, certificateRemarks].forEach(
+          (input) => {
+            input.style.display = "block";
+            input.style.padding = "8px";
+            input.style.marginBottom = "10px";
+            input.style.maxWidth = "100%";
+            certificateForm.appendChild(input);
+          }
+        );
+
+        certificateForm.insertBefore(
+          certificateStudent,
+          certificateForm.firstChild
+        );
+        certificateForm.appendChild(issueCertificateButton);
+        certificateForm.appendChild(certificateMessage);
+        certificateSection.appendChild(certificateForm);
+
+        const { data: certificateStudents, error: certificateStudentsError } =
+          await client
+            .from("students")
+            .select("id, full_name, class_level")
+            .order("full_name", { ascending: true });
+
+        if (certificateStudentsError) throw certificateStudentsError;
+
+        (certificateStudents || []).forEach((student) => {
+          const option = document.createElement("option");
+          option.value = student.id;
+          option.textContent =
+            `${student.full_name} — Class ${student.class_level}`;
+          certificateStudent.appendChild(option);
+        });
+
+        certificateForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const studentId = certificateStudent.value;
+          if (!studentId) {
+            certificateMessage.textContent = "Please select a student.";
+            return;
+          }
+
+          const certificateNumber =
+            "MYLN-" +
+            new Date().getFullYear() +
+            "-" +
+            crypto.randomUUID().slice(0, 8).toUpperCase();
+
+          issueCertificateButton.disabled = true;
+          certificateMessage.textContent = "Issuing certificate...";
+
+          const { data: issuedCertificate, error: issueCertificateError } =
+            await client
+              .from("certificates")
+              .insert({
+                certificate_number: certificateNumber,
+                student_id: studentId,
+                course_name: certificateCourse.value.trim(),
+                issue_date: certificateDate.value,
+                remarks: certificateRemarks.value.trim() || null,
+                created_by: data.user.id
+              })
+              .select("certificate_number")
+              .single();
+
+          issueCertificateButton.disabled = false;
+
+          if (issueCertificateError) {
+            certificateMessage.textContent =
+              "Failed to issue certificate: " + issueCertificateError.message;
+            return;
+          }
+
+          certificateMessage.textContent =
+            "Certificate issued successfully! ID: " +
+            issuedCertificate.certificate_number;
+
+          certificateForm.reset();
+          certificateDate.value = new Date().toISOString().slice(0, 10);
+        });
+        
+        // Issued Certificates List
+        const certificateListSection = addSection("Issued Certificates List");
+
+        const certificateListMessage = addText(
+          "p",
+          "Loading certificates...",
+          certificateListSection
+        );
+
+        const certificateListContainer = document.createElement("div");
+        certificateListSection.appendChild(certificateListContainer);
+
+        async function loadCertificateList() {
+          certificateListMessage.textContent = "Loading certificates...";
+          certificateListContainer.innerHTML = "";
+
+          const { data: certificates, error: certificatesError } =
+            await client
+              .from("certificates")
+              .select(`
+                id,
+                certificate_number,
+                course_name,
+                issue_date,
+                remarks,
+                students (
+                  full_name
+                )
+              `)
+              .order("created_at", { ascending: false });
+
+          if (certificatesError) {
+            certificateListMessage.textContent =
+              "Failed to load certificates: " + certificatesError.message;
+            return;
+          }
+
+          certificateListMessage.textContent =
+            certificates.length
+              ? `Total certificates: ${certificates.length}`
+              : "No certificates issued yet.";
+
+          certificates.forEach((certificate) => {
+            const item = document.createElement("div");
+            item.style.border = "1px solid #ddd";
+            item.style.padding = "12px";
+            item.style.marginBottom = "10px";
+            item.style.borderRadius = "8px";
+
+            const studentName = Array.isArray(certificate.students)
+              ? certificate.students[0]?.full_name
+              : certificate.students?.full_name;
+
+            item.textContent =
+              `Certificate: ${certificate.certificate_number} | ` +
+              `Student: ${studentName || "Unknown"} | ` +
+              `Course: ${certificate.course_name} | ` +
+              `Issue date: ${certificate.issue_date}`;
+
+            certificateListContainer.appendChild(item);
+          });
+        }
+
+        await loadCertificateList();
+
+
+        // Delete Exam
+        const deleteExamSection = addSection("Delete Exam");
+        addText(
+          "p",
+          "Warning: Deleting an exam also deletes all its results.",
+          deleteExamSection
+        );
+
+        const deleteExamSelect = document.createElement("select");
+        deleteExamSelect.required = true;
+        deleteExamSelect.style.padding = "8px";
+        deleteExamSelect.style.marginRight = "8px";
+
+        const deleteExamPlaceholder = document.createElement("option");
+        deleteExamPlaceholder.value = "";
+        deleteExamPlaceholder.textContent = "Select an exam to delete";
+        deleteExamSelect.appendChild(deleteExamPlaceholder);
+
+        const deleteExamButton = document.createElement("button");
+        deleteExamButton.type = "button";
+        deleteExamButton.textContent = "Delete Exam";
+        deleteExamButton.style.padding = "8px 12px";
+
+        const { data: examsToDelete, error: examsToDeleteError } = await client
+          .from("exams")
+          .select("id, title, subject, exam_date")
+          .order("created_at", { ascending: false });
+
+        if (examsToDeleteError) throw examsToDeleteError;
+
+        (examsToDelete || []).forEach((exam) => {
+          const option = document.createElement("option");
+          option.value = exam.id;
+          option.textContent =
+            `${exam.title} — ${exam.subject}` +
+            (exam.exam_date ? ` (${exam.exam_date})` : "");
+          deleteExamSelect.appendChild(option);
+        });
+
+        deleteExamSection.appendChild(deleteExamSelect);
+        deleteExamSection.appendChild(deleteExamButton);
+
+        deleteExamButton.addEventListener("click", async () => {
+          const examId = deleteExamSelect.value;
+
+          if (!examId) {
+            alert("Please select an exam first.");
+            return;
+          }
+
+          const selectedExam = examsToDelete.find(
+            (exam) => exam.id === examId
+          );
+
+          const confirmed = window.confirm(
+            `Delete "${selectedExam.title}"?\n\n` +
+            "All results linked to this exam will also be deleted. " +
+            "This action cannot be undone."
+          );
+
+          if (!confirmed) return;
+
+          deleteExamButton.disabled = true;
+
+          const { error: deleteExamError } = await client
+            .from("exams")
+            .delete()
+            .eq("id", examId);
+
+          deleteExamButton.disabled = false;
+
+          if (deleteExamError) {
+            alert("Failed to delete exam: " + deleteExamError.message);
+            return;
+          }
+
+          alert("Exam and its linked results deleted successfully.");
+          await loadExamList();
+
+          // Remove the deleted exam from the Exam List
+          const examListTable = examListSection.querySelector("table");
+
+          if (examListTable) {
+            Array.from(examListTable.querySelectorAll("tbody tr")).forEach(
+              (row) => {
+                if (
+                  row.cells[0]?.textContent === selectedExam.title &&
+                  row.cells[1]?.textContent === selectedExam.subject &&
+                  row.cells[2]?.textContent === (selectedExam.exam_date || "Not set")
+                ) {
+                  row.remove();
+                }
+              }
+            );
+
+            if (examListTable.querySelectorAll("tbody tr").length === 0) {
+              examListSection.innerHTML = "";
+              addText("h2", "All Exams", examListSection);
+              addText("p", "No exams have been created yet.", examListSection);
+            }
+          }
+
+          const deletedOption = Array.from(deleteExamSelect.options).find(
+            (option) => option.value === examId
+          );
+
+          if (deletedOption) deletedOption.remove();
+          deleteExamSelect.value = "";
+        });
 
         // Attendance Management
         const attendanceSection = addSection("Attendance Management");
@@ -2741,6 +4119,8 @@ summarySection.appendChild(summaryFilterContainer);
 
 // Overall Attendance Statistics
 const statsSection = addSection("Overall Attendance Statistics");
+console.log("Stats section ID:", statsSection.id);
+console.log("Dashboard content ID:", content.id);
 console.log("Stats section element:", statsSection);
 console.log("Stats section connected:", statsSection.isConnected);
 
@@ -3890,7 +5270,219 @@ if (data.session === null) {
   });
   console.log("Before creating statistics section");
   console.log("MYLN index.html loaded");
-</script>
+  
+document
+  .getElementById("verifyCertificateForm")
+  .addEventListener("submit", async function (event) {
+    event.preventDefault();
 
+    const certificateNumber = document
+      .getElementById("certificateNumber")
+      .value.trim()
+      .toUpperCase();
+
+    const result = document.getElementById("verificationResult");
+    result.textContent = "Verifying certificate...";
+
+    const { data: certificates, error } = await client.rpc(
+      "verify_myln_certificate",
+      { lookup_number: certificateNumber }
+    );
+
+    if (error) {
+      result.textContent =
+        "Verification failed. Please try again later.";
+      console.error("Certificate verification error:", error);
+      return;
+    }
+
+    if (!certificates || certificates.length === 0) {
+      result.textContent = "Certificate not found. Please check the number.";
+      return;
+    }
+
+    const certificate = certificates[0];
+    result.replaceChildren();
+
+    const heading = document.createElement("h3");
+    heading.textContent = "Certificate Verified";
+
+    const number = document.createElement("p");
+    number.textContent = "Certificate No: " + certificate.certificate_number;
+
+    const course = document.createElement("p");
+    course.textContent = "Course: " + certificate.course_name;
+
+    const date = document.createElement("p");
+    date.textContent = "Issue Date: " + certificate.issue_date;
+
+    result.append(heading, number, course, date);
+  });
+  
+// Automatically verify certificate when opened from a QR link
+window.addEventListener("DOMContentLoaded", function () {
+  const params = new URLSearchParams(window.location.search);
+  const certificateNumber = params.get("verify");
+
+  if (!certificateNumber) return;
+
+  const input = document.getElementById("certificateNumber");
+  const form = document.getElementById("verifyCertificateForm");
+
+  if (input && form) {
+    input.value = certificateNumber.toUpperCase();
+    form.requestSubmit();
+  }
+});
+async function generateCertificatePDF(certificate, studentName) {
+  const { jsPDF } = window.jspdf;
+
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4"
+  });
+
+  const green = [0, 83, 60];
+  const gold = [201, 161, 63];
+
+  // Background
+  doc.setFillColor(252, 250, 242);
+  doc.rect(0, 0, 297, 210, "F");
+
+  // Double border
+  doc.setDrawColor(...green);
+  doc.setLineWidth(1.2);
+  doc.rect(7, 7, 283, 196);
+
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.5);
+  doc.rect(10, 10, 277, 190);
+
+  // MYLN logo
+  const logo = new Image();
+  logo.src = "./assets/myln-logo.png";
+
+  await new Promise((resolve, reject) => {
+    logo.onload = resolve;
+    logo.onerror = () => reject(
+      new Error("Logo not found. Check the image path and filename.")
+    );
+  });
+
+  doc.addImage(logo, "PNG", 128.5, 15, 40, 40);
+
+  // Organization name
+  doc.setTextColor(...green);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("MYLN", 148.5, 61, { align: "center" });
+
+  doc.setFontSize(10);
+  doc.text("Muslim Youth Learning Network", 148.5, 67, {
+    align: "center"
+  });
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.text("Quality education through youth-led action", 148.5, 72, {
+    align: "center"
+  });
+
+  // Certificate title
+  doc.setFont("times", "bold");
+  doc.setFontSize(27);
+  doc.text("CERTIFICATE OF ACHIEVEMENT", 148.5, 91, {
+    align: "center"
+  });
+
+  doc.setDrawColor(...gold);
+  doc.line(65, 97, 232, 97);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  doc.text("This certificate is proudly presented to", 148.5, 108, {
+    align: "center"
+  });
+
+  // Student name
+  doc.setFont("times", "bold");
+  doc.setFontSize(25);
+  const safeStudentName = studentName || "Student";
+  doc.text(safeStudentName, 148.5, 122, {
+    align: "center",
+    maxWidth: 240
+  });
+
+  doc.setDrawColor(...gold);
+  doc.line(65, 128, 232, 128);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text("in recognition of successful completion of", 148.5, 138, {
+    align: "center"
+  });
+
+  // Course name
+  doc.setFont("times", "bold");
+  doc.setFontSize(20);
+  doc.text(certificate.course_name, 148.5, 150, {
+    align: "center",
+    maxWidth: 240
+  });
+
+  // Certificate details
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Issue Date: " + certificate.issue_date, 80, 166, {
+    align: "center"
+  });
+  doc.text("Certificate No: " + certificate.certificate_number, 205, 166, {
+    align: "center"
+  });
+
+  // Signature lines
+  doc.setDrawColor(...green);
+  doc.line(35, 183, 100, 183);
+  doc.line(195, 183, 260, 183);
+
+  doc.setFontSize(9);
+  doc.text("Program Director", 67.5, 189, { align: "center" });
+  doc.text("Authorized Signatory", 227.5, 189, { align: "center" });
+// Generate QR code for certificate verification
+const verificationURL =
+  window.location.origin +
+  window.location.pathname +
+  "?verify=" +
+  encodeURIComponent(certificate.certificate_number);
+
+const qrContainer = document.createElement("div");
+qrContainer.style.position = "absolute";
+qrContainer.style.left = "-9999px";
+document.body.appendChild(qrContainer);
+
+const qr = new QRCode(qrContainer, {
+  text: verificationURL,
+  width: 200,
+  height: 200,
+  correctLevel: QRCode.CorrectLevel.M
+});
+
+await new Promise(resolve => setTimeout(resolve, 300));
+
+const qrCanvas = qrContainer.querySelector("canvas");
+
+if (qrCanvas) {
+  const qrImage = qrCanvas.toDataURL("image/png");
+  doc.addImage(qrImage, "PNG", 255, 145, 25, 25);
+}
+
+qrContainer.remove();
+
+  doc.save("MYLN-Certificate-" + certificate.certificate_number + ".pdf");
+}
+
+</script>
+<img src="./assets/myln-logo.jpeg" alt="MYLN Logo" width="200">
 </body>
 </html>
