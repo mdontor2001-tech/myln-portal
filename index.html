@@ -5,620 +5,539 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MYLN Portal | Login</title>
+  <meta name="theme-color" content="#0e2f2c">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-* {
-  box-sizing: border-box;
-}
-
+/* MYLN Portal design system. Screen-only; print rules live in the second <style> block. */
 :root {
   --primary: #0f766e;
-  --primary-dark: #115e59;
+  --primary-dark: #0b5c56;
   --primary-light: #ccfbf1;
-  --background: #f1f5f9;
+  --ink: #0e2f2c;
+  --ink-2: #123e3a;
+  --gold: #c0903a;
+  --background: #eef3f2;
   --surface: #ffffff;
-  --text: #172033;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --danger: #b91c1c;
+  --surface-2: #f6f9f8;
+  --text: #15282a;
+  --muted: #5b6f6d;
+  --border: #dbe5e3;
+  --border-strong: #c3d2cf;
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+  --ok: #15803d;
+  --warn: #a15c07;
   --radius: 14px;
+  --shadow-sm: 0 1px 2px rgba(14, 47, 44, .06), 0 1px 1px rgba(14, 47, 44, .04);
+  --shadow-md: 0 10px 30px -12px rgba(14, 47, 44, .22);
+  --font-ui: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  background: var(--background);
-  color: var(--text);
-  line-height: 1.6;
-}
+@media screen {
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
 
-.card {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: clamp(18px, 3vw, 32px);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
-}
-
-.logo {
-  width: 54px;
-  height: 54px;
-  margin: 0 auto 12px;
-  display: grid;
-  place-items: center;
-  border-radius: 15px;
-  background: var(--primary);
-  color: white;
-  font-size: 25px;
-  font-weight: bold;
-}
-
-h1 {
-  color: var(--primary);
-  line-height: 1.25;
-}
-
-h1,
-.subtitle {
-  text-align: center;
-}
-
-.subtitle {
-  color: var(--muted);
-  margin-bottom: 28px;
-}
-
-section {
-  margin-top: 24px !important;
-  padding: 20px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow-wrap: anywhere;
-}
-
-section h2 {
-  margin-top: 0;
-  padding-bottom: 10px;
-  color: var(--primary-dark);
-  font-size: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-section h3 {
-  margin-top: 0;
-  font-size: 16px;
-}
-
-label {
-  display: block;
-  margin: 14px 0 7px;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  max-width: 100%;
-  padding: 11px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  background: white;
-  color: var(--text);
-  font: inherit;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid var(--primary-light);
-  border-color: var(--primary);
-}
-
-button {
-  width: auto;
-  max-width: 100%;
-  padding: 11px 16px;
-  margin-top: 10px;
-  border: 0;
-  border-radius: 9px;
-  background: var(--primary);
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-button:hover {
-  background: var(--primary-dark);
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-form {
-  max-width: 100%;
-}
-
-ul {
-  padding-left: 22px;
-}
-
-li {
-  margin-bottom: 10px;
-}
-
-table {
-  display: block;
-  max-width: 100%;
-  overflow-x: auto;
-  border-collapse: collapse;
-  background: white;
-  font-size: 14px;
-}
-
-th {
-  background: #f0fdfa;
-  color: var(--primary-dark);
-}
-
-th,
-td {
-  padding: 10px !important;
-  border: 1px solid var(--border) !important;
-  text-align: left;
-  white-space: nowrap;
-}
-
-#message,
-#dashboardError {
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-#dashboardError {
-  color: var(--danger);
-}
-
-.hint {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 20px;
-}
-
-@media (max-width: 600px) {
   body {
-    padding: 10px;
+    margin: 0;
+    min-height: 100vh;
+    padding: 0;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--background);
   }
 
-  .card {
-    padding: 16px;
-    border-radius: 14px;
-  }
+  h1, h2, h3, h4 { line-height: 1.25; }
+  :focus-visible { outline: 3px solid rgba(15, 118, 110, .4); outline-offset: 2px; }
+  ::selection { background: var(--primary-light); }
 
-  section {
-    padding: 14px;
-  }
+  /* ---------- Shared controls ---------- */
+  label { display: block; margin: 14px 0 6px; font-weight: 600; font-size: 14px; color: var(--ink-2); }
 
-  section h2 {
-    font-size: 18px;
+  input, select, textarea {
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 10px 13px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  input::placeholder, textarea::placeholder { color: #8a9b99; }
+  input:hover, select:hover, textarea:hover { border-color: #9fb5b1; }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, .14);
   }
 
   button {
+    width: auto;
     max-width: 100%;
+    min-height: 44px;
+    margin-top: 10px;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s, transform .1s;
   }
-}
+  button:hover { background: var(--primary-dark); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .6; cursor: wait; }
 
-/* MYLN Dashboard Header */
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
+  hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+  ul { padding-left: 22px; }
+  li { margin-bottom: 10px; }
+  form { max-width: 100%; }
 
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
+  /* ---------- Sign-in screen ---------- */
+  body:not(.is-dashboard) { display: grid; place-items: center; align-content: center; padding: clamp(12px, 3vw, 40px); }
 
-.header-brand .logo {
-  flex-shrink: 0;
-  margin: 0;
-}
-
-.header-brand h1 {
-  margin: 0;
-  text-align: left;
-  font-size: 24px;
-}
-
-.header-brand .subtitle {
-  margin: 4px 0 0;
-  text-align: left;
-}
-
-.dashboard-header > button {
-  margin-top: 0;
-}
-
-/* Sidebar and main content */
-#dashboardLayout {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 22px;
-  align-items: start;
-  margin-top: 20px;
-}
-
-#dashboardSidebar {
-  padding: 18px;
-  background: #f8fafc;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-#dashboardSidebar h3 {
-  margin: 0 0 14px;
-  color: var(--primary-dark);
-}
-
-#dashboardNav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-#dashboardNav button {
-  width: 100%;
-  margin: 0;
-  text-align: left;
-  background: transparent;
-  color: var(--text);
-  font-weight: 600;
-}
-
-#dashboardNav button:hover,
-#dashboardNav button.active {
-  background: var(--primary);
-  color: #fff;
-}
-
-#dashboardContent {
-  min-width: 0;
-}
-
-#dashboardContent > section:first-child {
-  margin-top: 0 !important;
-}
-
-/* Student and mentor layout */
-#dashboardLayout.no-sidebar {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* Mobile responsive */
-@media (max-width: 760px) {
-  #dashboardLayout {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-  }
-
-  #dashboardNav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  #dashboardSidebar {
-    padding: 14px;
-  }
-
-  .header-brand h1 {
-    font-size: 20px;
-  }
-}
-
-/* Professional MYLN Dashboard Header */
-.dashboard-header {
-  position: relative;
-  padding: 18px 20px;
-  margin: -10px -10px 24px;
-  border: 1px solid #dbeafe;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #f0fdfa, #ffffff 70%);
-  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.06);
-}
-
-.header-brand {
-  gap: 16px;
-}
-
-.header-brand .logo {
-  width: 58px;
-  height: 58px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #0f766e, #14b8a6);
-  box-shadow: 0 5px 12px rgba(15, 118, 110, 0.18);
-}
-
-.header-brand h1 {
-  color: #115e59;
-  font-size: clamp(20px, 2.5vw, 27px);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.header-brand .subtitle {
-  color: #64748b;
-  font-size: 14px;
-}
-
-.dashboard-header > button {
-  padding: 11px 20px;
-  border-radius: 10px;
-  background: #b91c1c;
-  box-shadow: 0 3px 8px rgba(185, 28, 28, 0.12);
-}
-
-.dashboard-header > button:hover {
-  background: #991b1b;
-}
-
-@media (max-width: 600px) {
-  .dashboard-header {
-    margin: 0 0 18px;
-    padding: 15px;
-  }
-
-  .header-brand {
-    gap: 11px;
-  }
-
-  .header-brand .logo {
-    width: 46px;
-    height: 46px;
-  }
-
-  .dashboard-header > button {
+  body:not(.is-dashboard) .card.auth-card {
     width: 100%;
-  }
-}
-
-/* Professional Sidebar */
-#dashboardSidebar {
-  position: sticky;
-  top: 18px;
-  padding: 20px 14px;
-  background: linear-gradient(180deg, #f0fdfa, #ffffff);
-  border: 1px solid #dbeafe;
-  border-radius: 16px;
-  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.04);
-}
-
-#dashboardSidebar h3 {
-  padding: 0 10px 14px;
-  margin-bottom: 12px;
-  color: #115e59;
-  font-size: 15px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  border-bottom: 1px solid #dbeafe;
-}
-
-#dashboardNav {
-  gap: 7px;
-}
-
-#dashboardNav button {
-  display: flex;
-  align-items: center;
-  padding: 12px 13px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  font-size: 13px;
-  transition: background 0.2s ease, color 0.2s ease,
-    border-color 0.2s ease, transform 0.2s ease;
-}
-
-#dashboardNav button:hover {
-  background: #ccfbf1;
-  color: #115e59;
-  border-color: #99f6e4;
-  transform: translateX(2px);
-}
-
-#dashboardNav button.active {
-  background: #0f766e;
-  color: #ffffff;
-  border-color: #0f766e;
-  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.15);
-}
-
-@media (max-width: 760px) {
-  #dashboardSidebar {
-    position: static;
-    padding: 14px;
+    max-width: 1020px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(280px, 5fr) 7fr;
+    padding: 0;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    box-shadow: var(--shadow-md);
   }
 
-  #dashboardNav button {
-    padding: 10px;
-    font-size: 12px;
-    transform: none;
+  .auth-brand {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 40px;
+    padding: clamp(28px, 4vw, 48px);
+    color: #e6f3f1;
+    background: linear-gradient(160deg, #0a3733 0%, #0f5d56 60%, #0f766e 100%);
   }
-}
-
-/* Student Profile Cards */
-.student-profile-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
-}
-
-.student-profile-item {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: linear-gradient(135deg, #f0fdfa, #ffffff);
-}
-
-.student-profile-label {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.student-profile-value {
-  color: var(--primary-dark);
-  font-size: 16px;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 500px) {
-  .student-profile-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .auth-brand::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: .9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.09' stroke-width='1.2'%3E%3Crect x='14' y='14' width='44' height='44'/%3E%3Crect x='14' y='14' width='44' height='44' transform='rotate(45 36 36)'/%3E%3C/g%3E%3C/svg%3E");
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 55%);
+    mask-image: linear-gradient(180deg, transparent, #000 55%);
   }
-}
+  .auth-brand .logo {
+    width: 56px; height: 56px; margin: 0;
+    display: grid; place-items: center;
+    border-radius: 16px;
+    background: #fff;
+    color: var(--primary-dark);
+    font: 700 28px var(--font-display);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, .14);
+  }
+  .auth-brand h1 {
+    margin: 22px 0 6px;
+    color: #fff;
+    text-align: left;
+    font: 600 clamp(30px, 4vw, 40px)/1.1 var(--font-display);
+    letter-spacing: -.01em;
+  }
+  .auth-brand .subtitle { margin: 0; text-align: left; color: #b8d8d3; font-size: 15px; }
+  .auth-lead { margin: 0; max-width: 30ch; font-size: 16px; color: #d4e9e6; border-left: 3px solid var(--gold); padding-left: 14px; }
 
-/* Student Attendance Table */
-.attendance-table-wrapper {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: white;
-}
+  .auth-body { padding: clamp(22px, 4vw, 44px); min-width: 0; }
 
-.attendance-table-wrapper table {
-  width: 100%;
-  margin: 0;
-  border: 0;
-  border-collapse: collapse;
-}
+  .auth-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 26px;
+    padding: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .auth-tabs button {
+    flex: 1 1 0;
+    min-height: 40px;
+    margin: 0;
+    padding: 8px 10px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13.5px;
+    font-weight: 600;
+    border-radius: 9px;
+  }
+  .auth-tabs button:hover { background: #fff; color: var(--ink); }
+  .auth-tabs button[aria-selected="true"] { background: #fff; color: var(--primary-dark); box-shadow: var(--shadow-sm); }
 
-.student-attendance-table th,
-.student-attendance-table td {
-  padding: 12px !important;
-  border-bottom: 1px solid var(--border) !important;
-  white-space: normal;
-  vertical-align: top;
-}
+  .auth-panel[hidden] { display: none; }
+  .auth-panel h2 { margin: 0 0 4px; font: 600 26px var(--font-display); color: var(--ink); letter-spacing: -.01em; }
+  .auth-panel .subtitle, .auth-panel > p { margin: 0 0 8px; color: var(--muted); text-align: left; }
+  .auth-panel form button[type="submit"] { width: 100%; margin-top: 22px; min-height: 48px; font-size: 15px; }
+  .auth-panel section { margin: 0 !important; padding: 0; border: 0; background: none; box-shadow: none; }
+  .auth-panel section h2 { padding: 0; border: 0; font-size: 26px; color: var(--ink); }
+  .auth-body hr { display: none; }
 
-.student-attendance-table th {
-  background: #f0fdfa;
-}
+  #message, #mentorApplicationMessage { margin: 14px 0 0; font-size: 14px; }
+  #message:not(:empty) {
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: 10px;
+  }
+  .hint { margin: 18px 0 0; color: var(--muted); font-size: 13px; }
 
-.student-attendance-table .attendance-status {
-  font-weight: 700;
-  text-transform: capitalize;
-}
+  #verificationResult:not(:empty) {
+    margin-top: 18px;
+    padding: 16px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow-wrap: anywhere;
+  }
+  #verificationResult p { margin: 4px 0; }
+  #verificationResult h3, #verificationResult h4 { margin: 0 0 6px; color: var(--primary-dark); }
 
-.student-attendance-table .attendance-status.present {
-  color: #15803d;
-}
+  body > img[alt="MYLN Logo"] { display: block; width: 56px; height: auto; margin: 0 auto; padding-bottom: 24px; opacity: .85; }
 
-.student-attendance-table .attendance-status.absent {
-  color: #b91c1c;
-}
+  /* ---------- Dashboard shell ---------- */
+  body.is-dashboard .card {
+    width: 100%;
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 12px clamp(12px, 2.4vw, 32px) 40px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
 
-.student-attendance-table .attendance-status.late {
-  color: #b45309;
-}
+  .dashboard-header {
+    position: sticky;
+    top: 10px;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: nowrap;
+    margin: 0 0 20px;
+    padding: 10px 14px 10px 12px;
+    background: rgba(255, 255, 255, .9);
+    -webkit-backdrop-filter: saturate(1.4) blur(12px);
+    backdrop-filter: saturate(1.4) blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .header-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .header-brand .logo {
+    flex: none; width: 44px; height: 44px; margin: 0;
+    display: grid; place-items: center;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #0b5c56, #14a396);
+    color: #fff;
+    font: 700 22px var(--font-display);
+  }
+  .header-brand h1 { margin: 0; text-align: left; color: var(--ink); font: 600 20px/1.2 var(--font-display); letter-spacing: -.01em; }
+  .header-brand .subtitle { margin: 0; text-align: left; color: var(--muted); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header-brand > div:last-child { min-width: 0; }
 
-@media (max-width: 500px) {
-  .student-attendance-table th,
-  .student-attendance-table td {
-    padding: 9px !important;
+  .header-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+  .role-chip {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #e6f3f1;
+    color: var(--primary-dark);
     font-size: 13px;
+    font-weight: 700;
+  }
+  body[data-role="admin"] .role-chip::before { content: "Administrator"; }
+  body[data-role="mentor"] .role-chip::before { content: "Mentor"; }
+  body[data-role="student"] .role-chip::before { content: "Student"; }
+  .header-actions button#logoutButton {
+    min-height: 40px; margin: 0; padding: 8px 16px;
+    background: #fff; color: var(--danger);
+    border: 1px solid #f0c4bf;
+  }
+  .header-actions button#logoutButton:hover { background: var(--danger-soft); }
+
+  #dashboardLayout {
+    display: grid;
+    grid-template-columns: 252px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    margin: 0;
+  }
+  #dashboardLayout.no-sidebar { grid-template-columns: minmax(0, 1fr); }
+  #dashboardContent { min-width: 0; }
+
+  #dashboardSidebar {
+    position: sticky;
+    top: 96px;
+    max-height: calc(100vh - 116px);
+    overflow-y: auto;
+    padding: 14px 10px 16px;
+    background: var(--ink);
+    border: 0;
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+  }
+  #dashboardSidebar[hidden] { display: none; }
+  #dashboardSidebar h3 { margin: 4px 10px 10px; padding: 0; border: 0; color: #fff; font: 600 17px var(--font-display); text-transform: none; letter-spacing: 0; }
+  #dashboardNav { display: flex; flex-direction: column; gap: 2px; }
+  .nav-group { margin: 14px 12px 4px; color: #86b0aa; font-size: 12.5px; font-weight: 600; }
+  #dashboardNav button {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: 42px;
+    margin: 0;
+    padding: 9px 12px;
+    text-align: left;
+    background: transparent;
+    color: #c5dcd8;
+    border: 0;
+    border-radius: 11px;
+    font-size: 14px;
+    font-weight: 600;
+    transform: none;
+    box-shadow: none;
+  }
+  #dashboardNav button svg { flex: none; width: 18px; height: 18px; opacity: .85; }
+  #dashboardNav button:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+  #dashboardNav button.active { background: rgba(255, 255, 255, .13); color: #fff; box-shadow: inset 3px 0 0 var(--gold); }
+  #dashboardNav button.active svg { color: #f0c776; opacity: 1; }
+
+  /* ---------- Dashboard content ---------- */
+  #dashboardContent > h2 { margin: 4px 0 4px; font: 600 clamp(26px, 3vw, 34px)/1.15 var(--font-display); color: var(--ink); letter-spacing: -.015em; }
+  #dashboardContent > p { margin: 0 0 6px; color: var(--muted); }
+  #dashboardContent > p:first-child { font-size: 17px; color: var(--ink-2); }
+
+  section {
+    margin-top: 20px !important;
+    padding: clamp(18px, 2.4vw, 28px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    overflow-wrap: anywhere;
+    overflow-x: auto;
+    text-align: left;
+    scroll-margin-top: 96px;
+  }
+  #dashboardContent > section:first-child { margin-top: 0 !important; }
+  section h2 { margin: 0 0 16px; padding: 0; border: 0; color: var(--ink); font: 600 22px/1.25 var(--font-display); letter-spacing: -.01em; }
+  section h3 { margin: 0 0 8px; font-size: 16px; color: var(--ink-2); }
+  section p { margin: 0 0 8px; }
+  section > h2 ~ h2 { margin: 22px 0 12px; font: 700 17px/1.3 var(--font-ui); letter-spacing: 0; }
+  section > h3:not(:first-child), section > h4:not(:first-child) { margin: 24px 0 10px; }
+  .mentor-students-section > h3:first-child { margin-bottom: 14px; font: 600 22px/1.25 var(--font-display); color: var(--ink); }
+
+  /* Admin overview as metric tiles */
+  #overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  #overview > h2 { grid-column: 1 / -1; margin-bottom: 2px; }
+  #overview > p.stat {
+    display: flex; flex-direction: column; gap: 2px;
+    margin: 0; padding: 16px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .stat-label { color: var(--muted); font-size: 13.5px; font-weight: 600; }
+  .stat-value { color: var(--primary-dark); font: 600 34px/1.1 var(--font-display); letter-spacing: -.02em; }
+
+  /* Forms inside dashboard sections */
+  #dashboardContent section > form {
+    max-width: 640px !important;
+    padding: 18px !important;
+    background: var(--surface-2);
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+  }
+  #dashboardContent form[style*="grid"] { gap: 12px !important; }
+  #dashboardContent td form { max-width: 460px !important; min-width: 240px; margin-top: 10px; padding: 14px !important; background: var(--surface-2); border: 1px solid var(--border) !important; border-radius: 12px !important; }
+  #dashboardContent label[style], #dashboardContent label { margin-top: 12px !important; }
+
+  #dashboardContent input[style]:not([type="checkbox"]):not([type="radio"]),
+  #dashboardContent select[style],
+  #dashboardContent textarea[style] {
+    min-height: 44px;
+    padding: 10px 13px !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 10px !important;
+    max-width: 100% !important;
+  }
+  #dashboardContent input[type="search"] { max-width: 420px !important; }
+
+  /* Buttons: tags are added by the enhancer script */
+  #dashboardContent button { min-height: 40px; }
+  #dashboardContent td button, #dashboardContent li button { min-height: 34px; padding: 6px 14px !important; font-size: 13px !important; margin: 2px 6px 2px 0 !important; }
+  #dashboardContent button.btn-secondary { background: #e6f1ef !important; color: var(--primary-dark) !important; border: 0 !important; }
+  #dashboardContent button.btn-secondary:hover { background: #d3e7e3 !important; }
+  #dashboardContent button.btn-danger { background: var(--danger-soft) !important; color: var(--danger) !important; border: 0 !important; }
+  #dashboardContent button.btn-danger:hover { background: #fadad7 !important; }
+  #dashboardContent button.btn-primary { background: var(--primary) !important; color: #fff !important; border: 0 !important; border-radius: 10px !important; }
+  #dashboardContent button.btn-primary:hover { background: var(--primary-dark) !important; }
+  #dashboardContent button:disabled { opacity: .55 !important; }
+
+  /* Tables */
+  table {
+    display: table;
+    width: 100%;
+    max-width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0;
+    background: #fff;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  th:first-child { border-top-left-radius: 13px; }
+  th:last-child { border-top-right-radius: 13px; }
+  th {
+    background: #f1f6f5 !important;
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  th, td {
+    padding: 12px 14px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+    text-align: left !important;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+    vertical-align: middle;
+  }
+  th { white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0 !important; }
+  tbody tr:hover td { background: #f8fbfa; }
+  .pill {
+    display: inline-block; padding: 3px 11px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 700; text-transform: capitalize;
+    background: #eef2f1; color: #3d4f4d;
+  }
+  .pill-active, .pill-present, .pill-approved, .pill-completed { background: #dcf5e6; color: #14653a; }
+  .pill-late, .pill-pending { background: #fdf0d5; color: var(--warn); }
+  .pill-absent, .pill-rejected, .pill-inactive { background: #fde3e0; color: #a1281d; }
+
+  /* Cards the JS draws with inline borders (stats, certificates, assigned students) */
+  #dashboardContent div[style*="border"] {
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+  #dashboardContent div[style*="border"] > h3 { margin: 0 0 6px; font: 600 18px/1.3 var(--font-display); color: var(--ink); }
+  #dashboardContent div[style*="border"] > h3:has(+ p[style*="28px"]) { font: 600 14px/1.3 var(--font-ui); color: var(--muted); }
+  #dashboardContent div[style*="border"] > p[style*="28px"] { font: 600 32px/1.1 var(--font-display) !important; color: var(--primary-dark); margin: 0 !important; }
+  #dashboardContent div[style*="border"] > p:has(+ h3), #dashboardContent div[style*="border"] > strong:has(+ h3) { display: block; margin: 0 0 4px; color: var(--muted); font-size: 13.5px; font-weight: 600; }
+  #dashboardContent div[style*="border"] > p + h3, #dashboardContent div[style*="border"] > strong + h3 { margin: 0; font: 600 32px/1.1 var(--font-display); color: var(--primary-dark); }
+  #dashboardContent div[style*="border"] > h4 { font-family: var(--font-display); color: var(--ink) !important; }
+  #dashboardContent div[style*="border"] > button { margin-top: 10px; }
+
+  .student-profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  .student-profile-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); }
+  .student-profile-label { color: var(--muted); font-size: 13px; font-weight: 600; }
+  .student-profile-value { color: var(--ink); font: 600 18px var(--font-display); overflow-wrap: anywhere; }
+
+  .attendance-table-wrapper { width: 100%; max-width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+  .attendance-table-wrapper table { margin: 0; border: 0; border-radius: 0; }
+  .student-attendance-table th, .student-attendance-table td { vertical-align: top; }
+  .student-attendance-table .attendance-status { font-weight: 700; text-transform: capitalize; }
+  .student-attendance-table .attendance-status.present { color: #14653a; }
+  .student-attendance-table .attendance-status.absent { color: #a1281d; }
+  .student-attendance-table .attendance-status.late { color: var(--warn); }
+
+  .mentor-students-section ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .mentor-students-section ul li { margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); overflow-wrap: anywhere; }
+  .mentor-attendance-form { max-width: 560px; }
+  .mentor-attendance-form select, .mentor-attendance-form input, .mentor-attendance-form textarea, .mentor-attendance-form button { width: 100%; }
+
+  #dashboardError { margin: 16px 0 0; font-size: 14px; color: var(--danger); }
+  #dashboardError:not(:empty) { padding: 12px 14px; background: var(--danger-soft); border: 1px solid #f0c4bf; border-radius: 10px; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    #dashboardLayout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .dashboard-header { position: static; }
+    #dashboardSidebar {
+      position: sticky; top: 8px; z-index: 35;
+      max-height: none; overflow: visible;
+      padding: 6px;
+      border-radius: 16px;
+    }
+    #dashboardSidebar h3, .nav-group { display: none; }
+    #dashboardNav { flex-direction: row; gap: 4px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    #dashboardNav::-webkit-scrollbar { display: none; }
+    #dashboardNav button { width: auto; flex: none; white-space: nowrap; padding: 9px 14px; }
+    #dashboardNav button.active { box-shadow: inset 0 -3px 0 var(--gold); }
+    section { scroll-margin-top: 80px; }
+  }
+
+  @media (max-width: 760px) {
+    body:not(.is-dashboard) .card.auth-card { grid-template-columns: minmax(0, 1fr); border-radius: 22px; }
+    .auth-brand { gap: 18px; padding: 24px; }
+    .auth-brand h1 { margin-top: 16px; font-size: 30px; }
+    .auth-lead { display: none; }
+    .auth-tabs { overflow-x: auto; scrollbar-width: none; }
+    .auth-tabs button { flex: none; white-space: nowrap; }
+  }
+
+  @media (max-width: 760px) {
+    table { display: block; overflow-x: auto; }
+    td { white-space: nowrap; }
+    .student-attendance-table td { white-space: normal; }
+  }
+
+  @media (max-width: 560px) {
+    body { font-size: 14.5px; }
+    .dashboard-header { padding: 10px; border-radius: 16px; }
+    .header-brand h1 { font-size: 17px; }
+    .header-brand .logo { width: 38px; height: 38px; font-size: 19px; }
+    .role-chip { display: none; }
+    #dashboardContent section > form { padding: 14px !important; }
+    #dashboardContent td form { min-width: 220px; }
+    th, td { padding: 10px 12px !important; }
+    #overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat-value { font-size: 28px; }
+    .student-profile-grid, .mentor-students-section ul { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
   }
 }
 
-/* Mentor Dashboard - Assigned Students */
-.mentor-students-section {
-  background: linear-gradient(135deg, #f0fdfa, #ffffff 65%);
+/* Keep printed tables identical to the original portal output */
+@media print {
+  body { font-family: Arial, sans-serif; color: #000; background: #fff; }
+  table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; background: white; font-size: 14px; }
+  th { background: #f0fdfa; color: #115e59; }
+  th, td { padding: 10px !important; border: 1px solid #e2e8f0 !important; text-align: left; white-space: nowrap; }
 }
-
-.mentor-students-section ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-}
-
-.mentor-students-section ul li {
-  margin: 0;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 500px) {
-  .mentor-students-section ul {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* Mentor Attendance Form */
-.mentor-attendance-form {
-  max-width: 560px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: linear-gradient(135deg, #f0fdfa, #ffffff);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-}
-
-.mentor-attendance-form select,
-.mentor-attendance-form input,
-.mentor-attendance-form textarea {
-  width: 100%;
-  min-height: 44px;
-  border-radius: 10px;
-}
-
-.mentor-attendance-form button {
-  width: 100%;
-  min-height: 44px;
-}
-
-.mentor-attendance-form button:hover {
-  transform: translateY(-1px);
-}
-
-@media (max-width: 500px) {
-  .mentor-attendance-form {
-    padding: 14px;
-  }
-}
-
   </style>
   
 
@@ -719,10 +638,27 @@ td {
 </head>
 
 <body>
-  <main class="card">
-    <div class="logo">M</div>
-    <h1>MYLN Portal</h1>
-    <p class="subtitle">Muslim Youth Learning Network</p>
+  <main class="card auth-card">
+    <div class="auth-brand">
+      <div>
+        <div class="logo">M</div>
+        <h1>MYLN Portal</h1>
+        <p class="subtitle">Muslim Youth Learning Network</p>
+      </div>
+      <p class="auth-lead">Classes, mentors, exams and attendance for the network, in one place.</p>
+    </div>
+
+    <div class="auth-body">
+    <div class="auth-tabs" role="tablist" aria-label="Portal access">
+      <button type="button" role="tab" data-tab="login" aria-selected="true">Sign in</button>
+      <button type="button" role="tab" data-tab="register" aria-selected="false" tabindex="-1">Register</button>
+      <button type="button" role="tab" data-tab="mentor" aria-selected="false" tabindex="-1">Mentor</button>
+      <button type="button" role="tab" data-tab="verify" aria-selected="false" tabindex="-1">Verify</button>
+    </div>
+
+    <div class="auth-panel" role="tabpanel" data-tab="login">
+    <h2>Welcome back</h2>
+    <p class="subtitle">Sign in with your MYLN email and password.</p>
 
     <form id="loginForm">
       <label for="email">Email Address</label>
@@ -735,7 +671,9 @@ td {
 
       <button id="loginButton" type="submit">Login</button>
     </form>
+    </div>
 
+    <div class="auth-panel" role="tabpanel" data-tab="register" hidden>
     <hr>
 
     <h2>Student Registration</h2>
@@ -774,7 +712,9 @@ td {
         Register as Student
       </button>
     </form>
+    </div>
 
+<div class="auth-panel" role="tabpanel" data-tab="mentor" hidden>
 <h2>Become a MYLN Mentor</h2>
 <p class="subtitle">Apply to join our mentor network</p>
 
@@ -819,12 +759,11 @@ td {
 
   <p id="mentorApplicationMessage" role="status"></p>
 </form>
+</div>
 
-    <div id="message" role="status" aria-live="polite"></div>
-    <p class="hint">Authorized MYLN users only.</p>
-    
     <hr>
 
+    <div class="auth-panel" role="tabpanel" data-tab="verify" hidden>
     <section id="publicCertificateVerification">
       <h2>Certificate Verification</h2>
       <p>Enter a MYLN certificate number to verify its authenticity.</p>
@@ -842,6 +781,11 @@ td {
 
       <div id="verificationResult" aria-live="polite"></div>
     </section>
+    </div>
+
+    <div id="message" role="status" aria-live="polite"></div>
+    <p class="hint">Authorized MYLN users only.</p>
+    </div>
   </main>
 
   
@@ -1029,20 +973,31 @@ card.innerHTML = `
         <p id="userName" class="subtitle"></p>
       </div>
     </div>
-    <button id="logoutButton" type="button">Logout</button>
+    <div class="header-actions">
+      <span class="role-chip"></span>
+      <button id="logoutButton" type="button">Logout</button>
+    </div>
   </div>
 
   <div id="dashboardLayout">
     <aside id="dashboardSidebar">
       <h3>Navigation</h3>
       <nav id="dashboardNav">
-        <button type="button" data-section="overview">Overview</button>
-        <button type="button" data-section="student-management">Students</button>
-        <button type="button" data-section="mentor-management">Mentors</button>
-        <button type="button" data-section="attendance-management">Attendance</button>
-        <button type="button" data-section="attendance-records">Attendance Records</button>
-        <button type="button" data-section="attendance-summary">Attendance Summary</button>
-        <button type="button" data-section="overall-attendance-statistics">Statistics</button>
+        <button type="button" data-section="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Overview</button>
+        <p class="nav-group">People</p>
+        <button type="button" data-section="student-management"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18.5 14.4c1.8.8 3 2.7 3 5.6"/></svg>Students</button>
+        <button type="button" data-section="mentor-management"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3 20c0-3.6 3-6 7-6 1.4 0 2.7.3 3.8.9"/><path d="M15.5 18.5l2 2 4-4.5"/></svg>Mentors</button>
+        <button type="button" data-section="pending-student-approval"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg>Student approvals</button>
+        <button type="button" data-section="pending-mentor-applications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>Mentor applications</button>
+        <p class="nav-group">Academics</p>
+        <button type="button" data-section="exam-management"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M8 7h7"/></svg>Exams</button>
+        <button type="button" data-section="result-management"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Results</button>
+        <button type="button" data-section="certificate-management"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5.5"/><path d="M8.5 14l-1.5 7 5-3 5 3-1.5-7"/></svg>Certificates</button>
+        <p class="nav-group">Attendance</p>
+        <button type="button" data-section="attendance-management"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg>Attendance</button>
+        <button type="button" data-section="attendance-records"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Attendance Records</button>
+        <button type="button" data-section="attendance-summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM4 9h16M9 9v11"/></svg>Attendance Summary</button>
+        <button type="button" data-section="overall-attendance-statistics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9h9"/><path d="M20.5 15A9 9 0 1112 3"/></svg>Statistics</button>
       </nav>
     </aside>
 
@@ -1051,6 +1006,9 @@ card.innerHTML = `
 
   <p id="dashboardError" role="alert"></p>
 `;
+card.classList.remove("auth-card");
+document.body.classList.add("is-dashboard");
+document.body.dataset.role = profile.role;
 
       document.getElementById("userName").textContent =
         profile.full_name || email;
@@ -1288,7 +1246,7 @@ section.appendChild(profileGrid);
         addText("p", "Loading exam results...", examResultsSection);
 
         const { data: myResults, error: myResultsError } = await client
-          .from("exam_results")
+          .from("results")
           .select(`
             marks_obtained,
             remarks,
@@ -1579,7 +1537,163 @@ if (!attendance || attendance.length === 0) {
         });
 
         examSection.appendChild(examForm);
- 
+        
+
+        // Result Management
+        const adminResultSection = addSection("Result Management");
+        addText("h2", "Enter Student Result", adminResultSection);
+
+        const adminResultForm = document.createElement("form");
+        adminResultForm.style.display = "grid";
+        adminResultForm.style.gap = "10px";
+        adminResultForm.style.maxWidth = "400px";
+
+        // Exam selection
+        const adminResultExamSelect = document.createElement("select");
+        adminResultExamSelect.required = true;
+
+        const adminExamPlaceholder = document.createElement("option");
+        adminExamPlaceholder.value = "";
+        adminExamPlaceholder.textContent = "Select Exam";
+        adminResultExamSelect.appendChild(adminExamPlaceholder);
+
+        const {
+          data: adminResultExams,
+          error: adminResultExamsError
+        } = await client
+          .from("exams")
+          .select("id, title, total_marks")
+          .order("created_at", { ascending: false });
+
+        if (adminResultExamsError) throw adminResultExamsError;
+
+        adminResultExams.forEach((exam) => {
+          const option = document.createElement("option");
+          option.value = exam.id;
+          option.textContent = exam.title;
+          option.dataset.totalMarks = exam.total_marks;
+          adminResultExamSelect.appendChild(option);
+        });
+
+        // Student selection
+        const adminResultStudentSelect = document.createElement("select");
+        adminResultStudentSelect.required = true;
+
+        const adminStudentPlaceholder = document.createElement("option");
+        adminStudentPlaceholder.value = "";
+        adminStudentPlaceholder.textContent = "Select Student";
+        adminResultStudentSelect.appendChild(adminStudentPlaceholder);
+
+        const {
+          data: adminResultStudents,
+          error: adminResultStudentsError
+        } = await client
+          .from("students")
+          .select("id, full_name")
+          .eq("status", "active")
+          .order("full_name", { ascending: true });
+
+        if (adminResultStudentsError) throw adminResultStudentsError;
+
+        adminResultStudents.forEach((student) => {
+          const option = document.createElement("option");
+          option.value = student.id;
+          option.textContent = student.full_name;
+          adminResultStudentSelect.appendChild(option);
+        });
+
+        // Marks
+        const adminResultMarksInput = document.createElement("input");
+        adminResultMarksInput.type = "number";
+        adminResultMarksInput.placeholder = "Marks Obtained";
+        adminResultMarksInput.min = "0";
+        adminResultMarksInput.step = "0.01";
+        adminResultMarksInput.required = true;
+
+        // Remarks
+        const adminResultRemarksInput = document.createElement("textarea");
+        adminResultRemarksInput.placeholder = "Remarks (Optional)";
+
+        const adminResultSubmitButton = document.createElement("button");
+        adminResultSubmitButton.type = "submit";
+        adminResultSubmitButton.textContent = "Save Result";
+
+        const adminResultMessage = document.createElement("p");
+
+        adminResultForm.append(
+          adminResultExamSelect,
+          adminResultStudentSelect,
+          adminResultMarksInput,
+          adminResultRemarksInput,
+          adminResultSubmitButton,
+          adminResultMessage
+        );
+
+        adminResultSection.appendChild(adminResultForm);
+
+        // Save result
+        adminResultForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const selectedExam =
+            adminResultExamSelect.options[
+              adminResultExamSelect.selectedIndex
+            ];
+
+          if (
+            !adminResultExamSelect.value ||
+            !adminResultStudentSelect.value
+          ) {
+            adminResultMessage.textContent =
+              "Please select an exam and a student.";
+            return;
+          }
+
+          const totalMarks = Number(selectedExam.dataset.totalMarks);
+          const marksObtained = Number(adminResultMarksInput.value);
+
+          if (
+            !Number.isFinite(marksObtained) ||
+            marksObtained < 0 ||
+            marksObtained > totalMarks
+          ) {
+            adminResultMessage.textContent =
+              "Marks must be between 0 and " + totalMarks + ".";
+            return;
+          }
+
+          adminResultSubmitButton.disabled = true;
+          adminResultMessage.textContent = "Saving result...";
+
+          try {
+            const { error } = await client
+              .from("results")
+              .upsert(
+                {
+                  exam_id: adminResultExamSelect.value,
+                  student_id: adminResultStudentSelect.value,
+                  marks_obtained: marksObtained,
+                  remarks: adminResultRemarksInput.value.trim() || null
+                },
+                {
+                  onConflict: "exam_id,student_id"
+                }
+              );
+
+            if (error) throw error;
+
+            adminResultMessage.textContent =
+              "Result saved successfully!";
+
+            adminResultForm.reset();
+          } catch (error) {
+            adminResultMessage.textContent =
+              "Failed to save result: " + error.message;
+          } finally {
+            adminResultSubmitButton.disabled = false;
+          }
+        });
+
         // Existing Exam List
         const examListSection = addSection("Exam List");
         addText("p", "Loading exams...", examListSection);
@@ -1772,7 +1886,7 @@ if (!attendance || attendance.length === 0) {
             resultMessage.textContent = "Saving result...";
 
             const { error } = await client
-              .from("exam_results")
+              .from("results")
               .insert({
                 exam_id: selectedExam.id,
                 student_id: resultStudentSelect.value,
@@ -1803,7 +1917,7 @@ if (!attendance || attendance.length === 0) {
 
         const { data: existingResults, error: existingResultsError } =
           await client
-            .from("exam_results")
+            .from("results")
             .select(`
               id,
               exam_id,
@@ -1919,7 +2033,7 @@ if (!attendance || attendance.length === 0) {
 
             try {
               const { error } = await client
-                .from("exam_results")
+                .from("results")
                 .update({
                   marks_obtained: marks,
                   remarks: editRemarksInput.value.trim() || null
@@ -3108,7 +3222,7 @@ row.style.display =
 
         const { data: resultsToDelete, error: resultsToDeleteError } =
           await client
-            .from("exam_results")
+            .from("results")
             .select(`
               id,
               marks_obtained,
@@ -3171,7 +3285,7 @@ row.style.display =
 
           try {
             const { error } = await client
-              .from("exam_results")
+              .from("results")
               .delete()
               .eq("id", selectedId);
 
@@ -5087,7 +5201,141 @@ markAttendanceButton.addEventListener("click", () => {
   item.appendChild(form);
 });
 
-item.append(studentInfo, markAttendanceButton, reportButton);
+// View Exam Results Button
+const resultButton = document.createElement("button");
+resultButton.type = "button";
+resultButton.textContent = "View Exam Results";
+resultButton.style.width = "100%";
+resultButton.style.padding = "10px 14px";
+resultButton.style.marginTop = "10px";
+resultButton.style.border = "none";
+resultButton.style.borderRadius = "8px";
+resultButton.style.background = "#7c3aed";
+resultButton.style.color = "#fff";
+resultButton.style.fontSize = "14px";
+resultButton.style.fontWeight = "600";
+resultButton.style.cursor = "pointer";
+
+resultButton.addEventListener("click", async () => {
+  const existingResults = item.querySelector(".mentor-student-results");
+
+  if (existingResults) {
+    existingResults.remove();
+    resultButton.textContent = "View Exam Results";
+    return;
+  }
+
+  resultButton.disabled = true;
+  resultButton.textContent = "Loading...";
+
+  try {
+    const { data: results, error: resultsError } = await client
+      .from("results")
+      .select(`
+        marks_obtained,
+        remarks,
+        exams (
+          title,
+          subject,
+          exam_date,
+          total_marks
+        )
+      `)
+      .eq("student_id", assignment.student_id);
+
+    if (resultsError) throw resultsError;
+
+    const resultContainer = document.createElement("div");
+    resultContainer.className = "mentor-student-results";
+    resultContainer.style.marginTop = "12px";
+    resultContainer.style.padding = "12px";
+    resultContainer.style.border = "1px solid #ddd";
+    resultContainer.style.borderRadius = "8px";
+    resultContainer.style.background = "#faf5ff";
+
+    const heading = document.createElement("h4");
+    heading.textContent = "Exam Results";
+    resultContainer.appendChild(heading);
+
+    if (!results || results.length === 0) {
+      const emptyMessage = document.createElement("p");
+      emptyMessage.textContent = "No exam results found.";
+      resultContainer.appendChild(emptyMessage);
+    } else {
+      results.forEach(result => {
+        const exam = result.exams;
+
+        if (!exam) return;
+
+        const totalMarks = Number(exam.total_marks) || 0;
+        const obtainedMarks = Number(result.marks_obtained);
+        const percentage = totalMarks > 0
+          ? ((obtainedMarks / totalMarks) * 100).toFixed(2)
+          : "N/A";
+
+        const resultCard = document.createElement("div");
+        resultCard.style.padding = "12px";
+        resultCard.style.marginBottom = "10px";
+        resultCard.style.background = "#fff";
+        resultCard.style.border = "1px solid #e5e7eb";
+        resultCard.style.borderRadius = "8px";
+
+        const examName = document.createElement("h4");
+        examName.textContent = exam.title || "Untitled Exam";
+
+        const details = document.createElement("p");
+        details.textContent =
+          "Subject: " + (exam.subject || "—");
+
+        const date = document.createElement("p");
+        date.textContent =
+          "Date: " + (exam.exam_date || "—");
+
+        const marks = document.createElement("p");
+        marks.textContent =
+          `Marks: ${obtainedMarks} / ${totalMarks}`;
+
+        const percentageText = document.createElement("p");
+        percentageText.textContent =
+          "Percentage: " + percentage + "%";
+
+        const remarks = document.createElement("p");
+        remarks.textContent =
+          "Remarks: " + (result.remarks || "—");
+
+        resultCard.append(
+          examName,
+          details,
+          date,
+          marks,
+          percentageText,
+          remarks
+        );
+
+        resultContainer.appendChild(resultCard);
+      });
+    }
+
+    item.appendChild(resultContainer);
+    resultButton.textContent = "Hide Exam Results";
+
+  } catch (error) {
+    alert("Could not load exam results: " + error.message);
+  } finally {
+    resultButton.disabled = false;
+
+    if (!item.querySelector(".mentor-student-results")) {
+      resultButton.textContent = "View Exam Results";
+    }
+  }
+});
+
+item.append(
+  studentInfo,
+  markAttendanceButton,
+  reportButton,
+  resultButton
+);
 
 list.appendChild(item);
 
@@ -5233,6 +5481,7 @@ mentorAttendanceStudentSelect.classList.add("mentor-attendance-input");
     }
   }
 }
+console.log("Logout button found:", document.getElementById("logoutButton"));
 document.getElementById("logoutButton").addEventListener(
   "click",
   async () => {
@@ -5482,6 +5731,85 @@ qrContainer.remove();
   doc.save("MYLN-Certificate-" + certificate.certificate_number + ".pdf");
 }
 
+</script>
+
+<script>
+/* MYLN UI enhancer: presentation only. Adds classes and tab switching; never alters data, handlers or text. */
+(function () {
+  "use strict";
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".auth-tabs [data-tab]"));
+  var panels = document.querySelectorAll(".auth-panel");
+  function showTab(name) {
+    tabs.forEach(function (t) {
+      var on = t.dataset.tab === name;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+    });
+    panels.forEach(function (p) { p.hidden = p.dataset.tab !== name; });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { showTab(t.dataset.tab); });
+    t.addEventListener("keydown", function (e) {
+      var n = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : null;
+      if (n === null) return;
+      var next = tabs[(n + tabs.length) % tabs.length];
+      showTab(next.dataset.tab); next.focus();
+    });
+  });
+  if (new URLSearchParams(window.location.search).get("verify")) showTab("verify");
+
+  var DANGER = /^(delete|reject|remove|deny)/i;
+  var SECOND = /^(edit|cancel|clear|show all|print|close|hide|view)/i;
+  var STATUS = /^(active|inactive|completed|present|absent|late|approved|pending|rejected)$/i;
+
+  function enhance() {
+    var root = document.getElementById("dashboardContent");
+    if (!root) return;
+    root.querySelectorAll("button:not([data-ui])").forEach(function (b) {
+      b.dataset.ui = "1";
+      var t = (b.textContent || "").trim();
+      b.classList.add(DANGER.test(t) ? "btn-danger" : SECOND.test(t) ? "btn-secondary" : "btn-primary");
+    });
+    var nav = document.getElementById("dashboardNav");
+    if (nav && !nav.querySelector("button.active")) {
+      var first = nav.querySelector("button[data-section]");
+      if (first) first.classList.add("active");
+    }
+    root.querySelectorAll("#overview > p:not(.stat)").forEach(function (p) {
+      var m = /^(.+?):\s*(\d+)$/.exec((p.textContent || "").trim());
+      if (!m) return;
+      var l = document.createElement("span"), v = document.createElement("span");
+      l.className = "stat-label"; l.textContent = m[1];
+      v.className = "stat-value"; v.textContent = m[2];
+      p.classList.add("stat"); p.textContent = ""; p.append(l, v);
+    });
+    root.querySelectorAll("table").forEach(function (tbl) {
+      var idx = -1;
+      tbl.querySelectorAll("thead th").forEach(function (th, i) {
+        if (/^status$/i.test((th.textContent || "").trim())) idx = i;
+      });
+      if (idx < 0) return;
+      tbl.querySelectorAll("tbody tr").forEach(function (tr) {
+        var td = tr.cells[idx];
+        if (!td || td.children.length) return;
+        var txt = (td.textContent || "").trim();
+        if (!STATUS.test(txt)) return;
+        var s = document.createElement("span");
+        s.className = "pill pill-" + txt.toLowerCase();
+        s.textContent = td.textContent;
+        td.textContent = "";
+        td.appendChild(s);
+      });
+    });
+  }
+
+  var queued = false;
+  new MutationObserver(function () {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function () { queued = false; enhance(); });
+  }).observe(document.body, { childList: true, subtree: true });
+})();
 </script>
 <img src="./assets/myln-logo.jpeg" alt="MYLN Logo" width="200">
 </body>
